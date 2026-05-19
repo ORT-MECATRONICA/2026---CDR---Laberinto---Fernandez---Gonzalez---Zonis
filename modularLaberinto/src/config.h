@@ -10,6 +10,8 @@
 #define X_START 5
 #define Y_START 5
 
+#define UMBRAL_LECTURA 100
+
 //===================
 // PINES VL53L0X
 //===================

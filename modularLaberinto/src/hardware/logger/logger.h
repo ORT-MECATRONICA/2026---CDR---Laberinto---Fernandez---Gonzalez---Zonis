@@ -11,3 +11,6 @@
         void enviarLog(char* mensaje); 
 
         void enviarString(String str);
+
+        uint8_t leerAccion(); 
+        bool cambioDeCelda(); //Función para detectar si se ha producido un cambio de celda, se puede usar para sincronizar el envío de datos con el movimiento del robot. Devuelve true si se ha producido un cambio de celda, false en caso contrario. Llamar en el loop del main.
