@@ -16,7 +16,9 @@ POSICION posicionActual = {X_START,Y_START, NORTE};
 ESTADOS estadoActual = ESPERA;
 uint32_t tiempoAnterior = 0;
 uint8_t contador = 0;
-bool salirDelLoop = false;
+bool mapaEnMemoria = false;
+bool salirPrimerRecorrido = false;
+bool salirSegundoRecorrido= false;
 //==============================================================
 //                     VOID SETUP
 //==============================================================
@@ -48,7 +50,7 @@ void loop(){
         if((millis() - tiempoAnterior) == 5000){
           if(contador == 1){
             estadoActual = CALIBRAR;
-          } else if (contador == 2){
+          } else if (contador > 3 && mapaEnMemoria == true ){
             estadoActual = SEGUNDO_RECORRIDO;
           } else if (contador == 0){
             estadoActual = ESPERA;
@@ -64,7 +66,7 @@ void loop(){
       };
       case PRIMER_RECORRIDO: {
         primerRecorrido();
-        if(salirDelLoop){
+        if(salirPrimerRecorrido == true){
           estadoActual = ESPERA;
         } else {
           estadoActual = PRIMER_RECORRIDO;
@@ -72,7 +74,11 @@ void loop(){
       };
       case SEGUNDO_RECORRIDO: {
         segundoRecorrido();
-        estadoActual = ESPERA;
+        if(salirSegundoRecorrido == true){
+          estadoActual = ESPERA;
+        } else {
+          estadoActual = SEGUNDO_RECORRIDO;
+        }
       };
   }
 }

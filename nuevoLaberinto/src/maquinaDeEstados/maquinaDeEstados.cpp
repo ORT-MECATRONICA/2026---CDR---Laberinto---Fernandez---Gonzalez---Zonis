@@ -3,11 +3,8 @@
 #include "hardware/movimiento/pid.h"
 
 void calibrar(){
-    bool salirDelLoop = false; //Acción bloqueante
-    SUBMAQUINA_CALIBRAR subestadoActual = SENSOR_IZQ;
-    while (salirDelLoop == false){
-        
-    }
+   SUBMAQUINA_CALIBRAR subestadoActual = SENSOR_IZQ;
+    
 }
 
 void primerRecorrido(){
