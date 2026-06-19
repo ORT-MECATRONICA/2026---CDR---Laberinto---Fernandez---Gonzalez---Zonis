@@ -11,8 +11,8 @@ enum MOVIMIENTOS{
 };
 
 struct VELOCIDAD {
-    int8_t izquierda;
-    int8_t derecha;
+    int16_t izquierda;
+    int16_t derecha;
 };
 
 void avanzar(VELOCIDAD velocidad);

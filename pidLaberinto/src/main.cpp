@@ -6,8 +6,8 @@
 #include "memoria/funcionesMapeo.h"
 
 #include "hardware/movimiento/puenteH.h"
+#include "hardware/movimiento/PID.h"
 
-uint8_t errorAnterior = 0;
 //==============================================================
 //                CREACIÓN DE VARIABLES GLOBALES
 //==============================================================
@@ -47,10 +47,7 @@ void loop(){
         
       case AVANZAR:
         sensadoActual = actualizarSensado();
-        uint8_t error = sensadoActual.distanciaIzq - sensadoActual.distanciaDer;
-    uint8_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
-    errorAnterior = error; //CHECKEAR SI O SI!!
-     uint8_t calculoCorreccion = correccion;
+        int16_t calculoCorreccion = calcularCorreccion(sensadoActual);
         velocidadActual.izquierda = VEL_BASE_IZQ + calculoCorreccion;
         velocidadActual.derecha = VEL_BASE_DER - calculoCorreccion;
         Serial.println("hlla");

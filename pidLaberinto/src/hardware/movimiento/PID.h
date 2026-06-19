@@ -1,4 +1,4 @@
 #pragma once
 #include <stdint.h>
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
-uint8_t calcularCorreccion(sensado mediciones);
+int16_t calcularCorreccion(sensado mediciones);
