@@ -1,4 +1,3 @@
-#pragma once
 #include  "puenteH.h"
 #include "Arduino.h"
 #include "config.h"
@@ -17,10 +16,10 @@ void inicializarMotores(){
 
 void avanzar(VELOCIDAD velocidad)
 {
-    digitalWrite(AIN1, HIGH);
-    digitalWrite(AIN2, LOW);
-    digitalWrite(BIN1, LOW);
-    digitalWrite(BIN2, HIGH);
+    digitalWrite(AIN1, LOW);
+    digitalWrite(AIN2, HIGH);
+    digitalWrite(BIN1, HIGH);
+    digitalWrite(BIN2, LOW);
     ledcWrite(0, velocidad.izquierda);
     ledcWrite(1, velocidad.derecha);
 }

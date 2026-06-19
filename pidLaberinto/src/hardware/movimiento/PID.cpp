@@ -1,7 +1,7 @@
 #include "PID.h"
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
 #include "config.h"
-
+/*
 //Vale esto?
 uint8_t errorAnterior = 0;
 
@@ -12,5 +12,5 @@ uint8_t calcularCorreccion(sensado mediciones){
     return correccion;
     //Cómo hago para guardar error anterior?
     //No lo puedo pasar como parámetro porque después no tengo como actualizarlo.
-    
 }
+ */

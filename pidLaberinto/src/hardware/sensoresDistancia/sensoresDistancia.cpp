@@ -1,5 +1,6 @@
 #include "sensoresDistancia.h"
 #include <Arduino.h>
+#include <Wire.h>
 #include <VL53L0X.h> 
 #include "config.h"
 //LAS REFERENCIAS DE STM ELECTRONICS SON LAS DE LA API FUENTE
@@ -10,7 +11,23 @@
 VL53L0X sensorDer, sensorIzq, sensorCent;
 
 void inicializacionSensoresDist(){
+  // Es fundamental inicializar el bus I2C
+  Wire.begin();
+
+  // 1. APAGAR TODOS LOS SENSORES
+  // Para usar múltiples sensores en el mismo bus, todos arrancan con la dir 0x29
+  // Hay que apagar todos poniendo XSHUT en LOW, y prenderlos de a uno.
   pinMode(xshutPinDer, OUTPUT);
+  pinMode(xshutPinCent, OUTPUT);
+  pinMode(xshutPinIzq, OUTPUT);
+  
+  digitalWrite(xshutPinDer, LOW);
+  digitalWrite(xshutPinCent, LOW);
+  digitalWrite(xshutPinIzq, LOW);
+  delay(10); // Dar tiempo para asegurar el apagado
+
+
+  // 2. Encender y configurar Sensor Derecho
   digitalWrite(xshutPinDer, HIGH);
   delay(10); // esperar boot del sensor
 
@@ -23,9 +40,8 @@ void inicializacionSensoresDist(){
   sensorDer.setAddress(adressDer);
   sensorDer.startContinuous(0);
 
-  //Sensor Central
+  // 3. Encender y configurar Sensor Central
 
-  pinMode(xshutPinCent, OUTPUT);
   digitalWrite(xshutPinCent, HIGH);
   delay(10); // esperar boot del sensor
 
@@ -38,9 +54,8 @@ void inicializacionSensoresDist(){
   sensorCent.setAddress(adressCent);
   sensorCent.startContinuous(0);
 
-  //Sensor Izquierdo
+  // 4. Encender y configurar Sensor Izquierdo
 
-  pinMode(xshutPinIzq, OUTPUT);
   digitalWrite(xshutPinIzq, HIGH);
   delay(10); // esperar boot del sensor
 

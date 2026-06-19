@@ -1,8 +1,4 @@
 #pragma once
-
+#include <stdint.h>
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
 uint8_t calcularCorreccion(sensado mediciones);
-
-struct VELOCIDAD {
-    int16_t izquierda;
-    int16_t derecha;
-};

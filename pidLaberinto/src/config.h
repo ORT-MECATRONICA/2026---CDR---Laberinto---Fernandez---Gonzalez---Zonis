@@ -12,7 +12,7 @@
 
 #define KP 1
 #define KI 0
-#define KD 0
+#define KD 0.3
 
 #define VEL_BASE_DER 100
 #define VEL_BASE_IZQ 100
@@ -23,7 +23,7 @@
 //     PINES
 //===================
 
-#define BOTON 5 //cambiar
+#define BOTON 35 
 
 //Checheados - motores
 #define AIN1 25
@@ -35,9 +35,9 @@
 //===================
 // PINES VL53L0X
 //===================
-#define xshutPinDer 26
-#define xshutPinIzq 25
-#define xshutPinCent 27
+#define xshutPinDer 23
+#define xshutPinIzq 18
+#define xshutPinCent 19
 #define adressDer 0x30
 #define adressIzq 0x31
 #define adressCent 0x32
