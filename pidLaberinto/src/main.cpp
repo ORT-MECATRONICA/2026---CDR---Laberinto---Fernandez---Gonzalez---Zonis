@@ -5,9 +5,11 @@
 #include "hardware/sensorPiso/sensorPiso.h"
 #include "memoria/funcionesMapeo.h"
 
-#include "hardware/movimiento/puenteH.h"
 #include "hardware/movimiento/PID.h"
 
+#include "hardware/movimiento/puenteH.h"
+
+uint8_t errorAnterior = 0;
 //==============================================================
 //                CREACIÓN DE VARIABLES GLOBALES
 //==============================================================
@@ -29,7 +31,7 @@ void setup (){
 
 
 //==============================================================
-//    ANULAMOS VOID LOOP DE ARDUINO PARA NO CONSUMIR RECURSOS
+//                       VOID LOOP
 //==============================================================
 
 void loop(){
@@ -47,10 +49,19 @@ void loop(){
         
       case AVANZAR:
         sensadoActual = actualizarSensado();
+        Serial.println(" Distancia Derecha: " + String(sensadoActual.distanciaDer) + " | Distancia Izquierda: " + String(sensadoActual.distanciaIzq));
         int16_t calculoCorreccion = calcularCorreccion(sensadoActual);
-        velocidadActual.izquierda = VEL_BASE_IZQ + calculoCorreccion;
-        velocidadActual.derecha = VEL_BASE_DER - calculoCorreccion;
-        Serial.println("hlla");
+        // Evitamos que la corrección sea muy grande (limitamos entre -50 y 50)
+        calculoCorreccion = constrain(calculoCorreccion, -50, 50);
+         
+        // Calculamos las velocidades
+        int16_t velIzq = VEL_BASE_IZQ + calculoCorreccion;
+        int16_t velDer = VEL_BASE_DER - calculoCorreccion;
+        
+        // Evitamos que el PWM de las ruedas sea negativo (menor a 0) o mayor a 255
+        velocidadActual.izquierda = constrain(velIzq, 0, 255);
+        velocidadActual.derecha = constrain(velDer, 0, 255);
+        //Serial.println("Velocidad Izquierda: " + String(velocidadActual.izquierda) + " | Velocidad Derecha: " + String(velocidadActual.derecha));
         avanzar(velocidadActual);
 
 

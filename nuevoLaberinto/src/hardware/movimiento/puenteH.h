@@ -10,4 +10,11 @@ enum MOVIMIENTOS{
     FRENO_F,
 };
 
+struct VELOCIDAD {
+    int16_t izquierda;
+    int16_t derecha;
+};
+
+void avanzar(VELOCIDAD velocidad);
+void inicializarMotores();
 bool actualizarDeltaX();

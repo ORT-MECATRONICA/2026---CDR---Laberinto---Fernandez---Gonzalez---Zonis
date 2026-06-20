@@ -8,8 +8,6 @@
 #include <Arduino.h>
 #include <VL53L0X.h> //Biblioteca de Pololu para el sensor de distancia VL53L0X
 
-//Creación de objetos que solamente se van a poder modificar aca
-VL53L0X sensorFront, sensorDer, sensorIzq;
 
 //Struct para la medición de sensado
  

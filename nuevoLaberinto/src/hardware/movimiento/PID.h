@@ -1,8 +1,4 @@
 #pragma once
-
-void calcularDiferencialPID();
-
-struct VELOCIDAD {
-    int16_t izquierda;
-    int16_t derecha;
-};
+#include <stdint.h>
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+int16_t calcularCorreccion(sensado mediciones);

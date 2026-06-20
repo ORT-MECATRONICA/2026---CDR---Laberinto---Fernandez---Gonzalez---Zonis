@@ -19,6 +19,10 @@
 
 #define UMBRAL_LECTURA 100
 
+#define OFSET_DER 30
+#define OFSET_IZQ 0
+#define OFSET_CENT 30
+
 //===================
 //     PINES
 //===================
