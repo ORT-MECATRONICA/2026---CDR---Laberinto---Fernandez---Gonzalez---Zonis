@@ -26,7 +26,8 @@
 #define OFSET_IZQ 0
 #define OFSET_CENT 30
 
-
+//Es el tiempo de delay del Freno F. Es BLOQUEANTE
+#define DELAY_TIEMPO_FRENADO_EN_F 750
 
 //===================
 //     PINES
