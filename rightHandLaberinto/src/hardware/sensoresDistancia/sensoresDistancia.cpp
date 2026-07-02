@@ -73,15 +73,22 @@ sensado actualizarSensado(){
   // Hacer estática la variable para que guarde la última medición válida
   // Si el loop corre más rápido que los 33ms del sensor, no resetea la distancia a 0.
   static sensado lecturaAct = {0,0,0}; 
+  static unsigned long ultimoSensado = 0;
+
+  // Evitamos saturar el bus I2C (El ESP32 es tan rápido que ahogaba a los sensores)
+  // Limitamos la lectura a cada 20ms (50Hz)
+  if(millis() - ultimoSensado > 20){
+    if((sensorIzq.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
+      lecturaAct.distanciaIzq = (sensorIzq.readRangeContinuousMillimeters() - OFSET_IZQ);
+    }
+    if((sensorCent.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
+      lecturaAct.distanciaCent = (sensorCent.readRangeContinuousMillimeters() - OFSET_CENT);
+    }
+    if((sensorDer.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
+      lecturaAct.distanciaDer = (sensorDer.readRangeContinuousMillimeters() - OFSET_DER);
+    }
+    ultimoSensado = millis();
+  }
   
-  if((sensorIzq.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-    lecturaAct.distanciaIzq = (sensorIzq.readRangeContinuousMillimeters() - OFSET_IZQ);
-  }
-  if((sensorCent.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-    lecturaAct.distanciaCent = (sensorCent.readRangeContinuousMillimeters() - OFSET_CENT);
-  }
-  if((sensorDer.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-    lecturaAct.distanciaDer = (sensorDer.readRangeContinuousMillimeters() - OFSET_DER);
-  }
   return lecturaAct;
 } 

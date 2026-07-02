@@ -20,5 +20,5 @@ int16_t calcularCorreccionRightHand(int16_t error){
     
     errorAnterior = error; 
     
-    return correccion;
+    return constrain(correccion, -50, 50);
 }

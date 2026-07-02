@@ -29,6 +29,7 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       digitalWrite(BIN2, LOW);
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
+      break;
     }
     case RETROCEDER: {
       digitalWrite(AIN1, HIGH);
@@ -37,6 +38,7 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       digitalWrite(BIN2, HIGH);
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
+      break;
     }
     case GIRAR_DER: {
       digitalWrite(AIN1, HIGH);
@@ -45,6 +47,7 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       digitalWrite(BIN2, LOW);
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
+      break;
     }
     case GIRAR_IZQ: {
       digitalWrite(AIN1, LOW);
@@ -53,6 +56,7 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       digitalWrite(BIN2, HIGH);
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
+      break;
     }
     case FRENO_F: {
       digitalWrite(AIN1, LOW);
@@ -61,6 +65,7 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       digitalWrite(BIN2, LOW);
       ledcWrite(0, 0);
       ledcWrite(1, 0);
+      break;
     }
   }
 }

@@ -57,8 +57,8 @@ void loop() {
     digitalWrite(AIN2, LOW);
     digitalWrite(BIN1, HIGH);
     digitalWrite(BIN2, LOW);
-    ledcWrite(0, 200);
-    ledcWrite(1, 200);
+    ledcWrite(0, 100);
+    ledcWrite(1, 100);
     
     unsigned long tiempoActual = millis();
     if (tiempoActual - tiempoAnterior >= INTERVALO_BLUETOOTH) {

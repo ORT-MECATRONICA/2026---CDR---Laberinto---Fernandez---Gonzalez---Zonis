@@ -17,11 +17,16 @@
 #define VEL_BASE_DER 100
 #define VEL_BASE_IZQ 100
 
+#define VEL_GIRO_DER 50
+#define VEL_GIRO_IZQ 50
+
 #define UMBRAL_LECTURA 100
 
 #define OFSET_DER 30
 #define OFSET_IZQ 0
 #define OFSET_CENT 30
+
+
 
 //===================
 //     PINES

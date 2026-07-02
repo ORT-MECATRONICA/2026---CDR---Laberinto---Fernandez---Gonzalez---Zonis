@@ -9,7 +9,7 @@
 
 #include "hardware/movimiento/puenteH.h"
 
-uint8_t errorAnterior = 0;
+// uint8_t errorAnterior = 0; // -ANTIGRAVITY- Eliminada por estar en desuso y chocar con el tipo del PID
 //==============================================================
 //                CREACIÓN DE VARIABLES GLOBALES
 //==============================================================
@@ -23,7 +23,7 @@ VELOCIDAD velocidadActual = {0,0};
 //==============================================================
 
 void setup (){
-  pinMode(BOTON, INPUT); // Es necesario inicializar el pin
+  pinMode(BOTON, INPUT_PULLUP); // -ANTIGRAVITY- Cambiado a INPUT_PULLUP (recordá cambiar de pin si no pusiste resistencia)
   inicializarLogger();
   inicializacionSensoresDist();
   inicializarMotores(); // Faltaba inicializar los motores (PWM/LEDC)
@@ -41,6 +41,7 @@ void loop(){
         avanzar({0,0}); //frena los motores, PWM a 0.
         if(lecturaBoton == LOW){
           estadoActual = AVANZAR;
+          Serial.println("Botón presionado, cambiando a estado AVANZAR");
           while(digitalRead(BOTON) == LOW) { delay(10); } // Espera a que se suelte el botón (antirrebote)
         } else {
           estadoActual = SWITCHEAR_ESTADO;
@@ -49,14 +50,14 @@ void loop(){
         
       case AVANZAR:
         sensadoActual = actualizarSensado();
-        Serial.println(" Distancia Derecha: " + String(sensadoActual.distanciaDer) + " | Distancia Izquierda: " + String(sensadoActual.distanciaIzq));
+        Serial.println(" Distancia Derecha: " + String(sensadoActual.distanciaDer) + " | Distancia Izquierda: " + String(sensadoActual.distanciaIzq) + " | Distancia Frente: " + String(sensadoActual.distanciaCent));
         int16_t calculoCorreccion = calcularCorreccion(sensadoActual);
         // Evitamos que la corrección sea muy grande (limitamos entre -50 y 50)
         calculoCorreccion = constrain(calculoCorreccion, -50, 50);
          
         // Calculamos las velocidades
-        int16_t velIzq = VEL_BASE_IZQ + calculoCorreccion;
-        int16_t velDer = VEL_BASE_DER - calculoCorreccion;
+        int16_t velIzq = VEL_BASE_IZQ - calculoCorreccion; // -ANTIGRAVITY- Se invirtió el signo (de + a -)
+        int16_t velDer = VEL_BASE_DER + calculoCorreccion; // -ANTIGRAVITY- Se invirtió el signo (de - a +)
         
         // Evitamos que el PWM de las ruedas sea negativo (menor a 0) o mayor a 255
         velocidadActual.izquierda = constrain(velIzq, 0, 255);
