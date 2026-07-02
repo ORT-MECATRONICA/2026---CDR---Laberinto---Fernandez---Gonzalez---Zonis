@@ -53,7 +53,7 @@ void loop(){
         
         // Para frenar cuando tocamos el botón (Prioridad absoluta)
         if(lecturaBoton == LOW){
-          movimiento(FRENO_F,{0,0}); 
+          movimiento(FRENO_F,{0,0});  
           estadoActual = SWITCHEAR_ESTADO;
           while(digitalRead(BOTON) == LOW) { delay(10); } 
           break; // Salimos del case para no ejecutar el resto
