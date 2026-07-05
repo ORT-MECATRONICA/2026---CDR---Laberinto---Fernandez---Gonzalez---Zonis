@@ -47,6 +47,10 @@
 #define BIN2 26
 #define PWMA 32
 #define PWMB 14
+#define ENC_A_1 16
+#define ENC_B_1 17
+#define ENC_A_2 4
+#define ENC_B_2 2
 //===================
 // PINES VL53L0X
 //===================

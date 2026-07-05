@@ -51,7 +51,7 @@ void loop(){
       Serial.println("AVANZANDO");
         sensadoActual = actualizarSensado();
         
-        // Para frenar cuando tocamos el botón (Prioridad absoluta)
+        //Lógica para frenar si se toca el botón
         if(lecturaBoton == LOW){
           movimiento(FRENO_F,{0,0});  
           estadoActual = SWITCHEAR_ESTADO;
@@ -61,9 +61,9 @@ void loop(){
 
         //======== NAVEGACIÓN - RIGHT HAND =========
 
-        if (sensadoActual.distanciaDer < 150){
+        if (sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL){
           estadoActual = GIRANDO_DER;
-        } else if (sensadoActual.distanciaIzq < 150){ 
+        } else if (sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL){ 
           estadoActual = GIRANDO_IZQ;
         } else {
           movimiento(AVANZAR, {VEL_BASE_DER, VEL_BASE_IZQ});
@@ -77,6 +77,7 @@ void loop(){
         if(sensadoActual.distanciaDer < 70){
           estadoActual = AVANZANDO;
         }
+         //Lógica para frenar si se toca el botón
         if(lecturaBoton == LOW){
           movimiento(FRENO_F,{0,0}); 
           estadoActual = SWITCHEAR_ESTADO;
@@ -88,7 +89,7 @@ void loop(){
         movimiento(GIRAR_IZQ,{VEL_GIRO_DER,VEL_GIRO_IZQ});
         sensadoActual = actualizarSensado();
         // REVISAR ESTO
-        if(sensadoActual.distanciaCent > 120){
+        if(sensadoActual.distanciaCent > UMBRAL_PARED_FRENTE){
           estadoActual = AVANZANDO;
         }
         // Agregamos chequeo de botón por seguridad durante el giro
