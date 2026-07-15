@@ -39,10 +39,28 @@ void setup (){
 
 void loop(){
   static unsigned long lastPrintTime = 0;
+  static bool robotDetenido = false;
 
-  //sensadoActual = actualizarSensado();
-  //Serial.println("Distancia Cent: " + String(sensadoActual.distanciaCent) + " Distancia Der: " + String(sensadoActual.distanciaDer) + " Distancia Izq: " + String(sensadoActual.distanciaIzq));
-  movimiento(AVANZAR, {100,100});
+  if (!robotDetenido) {
+    movimiento(AVANZAR, {70,70});
+
+    // Cálculos para 2 metros (2000 mm):
+    // Diámetro de la rueda: 15 mm -> Perímetro = 15 * PI = 47.1239 mm
+    // Vueltas necesarias = 2000 mm / 47.1239 mm = 42.44 vueltas
+    // ¡ATENCIÓN! Cambiá el valor de PPR por la cantidad de Pulsos Por Revolución reales de tus motores.
+    float PPR = 360.0; // <--- REEMPLAZAR POR EL VALOR DE TUS ENCODERS
+    float pulsosObjetivo = 42.44 * PPR;
+
+    int32_t pulsosA = verPulsosEncoderA();
+    int32_t pulsosB = verPulsosEncoderB();
+
+    // Comparamos el valor absoluto por si los encoders cuentan en negativo
+    if (abs(pulsosA) >= pulsosObjetivo || abs(pulsosB) >= pulsosObjetivo) {
+      movimiento(FRENO_F, {0,0});
+      robotDetenido = true;
+      enviarString("2 metros alcanzados. Robot detenido.");
+    }
+  }
 
   if (millis() - lastPrintTime >= 5000) {
     lastPrintTime = millis();
