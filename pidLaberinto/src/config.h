@@ -14,8 +14,8 @@
 #define KI 0
 #define KD 0.3
 
-#define VEL_BASE_DER 100
-#define VEL_BASE_IZQ 100
+#define VEL_BASE_DER 150
+#define VEL_BASE_IZQ 150
 
 #define UMBRAL_LECTURA 100
 
