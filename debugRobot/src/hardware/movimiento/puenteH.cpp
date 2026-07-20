@@ -1,6 +1,7 @@
 #include  "puenteH.h"
 #include "Arduino.h"
 #include "config.h"
+#include "hardware/encoders/encoders.h"
 
 void inicializarMotores(){
     pinMode(AIN1, OUTPUT);
@@ -68,4 +69,30 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       break;
     }
   }
+}
+
+void girar90GradosBloqueante(MOVIMIENTOS direccion) {
+    // 1. Ponemos los contadores en 0
+    resetearEncoders();
+    
+    // 2. Iniciamos el movimiento de giro
+    VELOCIDAD velGiro = {VEL_GIRO_IZQ, VEL_GIRO_DER}; 
+    movimiento(direccion, velGiro);
+
+
+    while(abs(verPulsosEncoderA()) < PULSOS_90_GRADOS) {
+        // Un delay mínimo de 1ms para que el ESP32 no colapse la tarea
+        delay(1); 
+    }
+}
+
+void avanzarBloqueante(){
+  resetearEncoders();
+  movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+
+
+    while(abs(verPulsosEncoderA()) < PULSOS_AVANZAR_BLOQUEANTE) {
+        // Un delay mínimo de 1ms para que el ESP32 no colapse la tarea
+        delay(1); 
+    }
 }

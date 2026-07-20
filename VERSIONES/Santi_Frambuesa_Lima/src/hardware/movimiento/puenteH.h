@@ -16,4 +16,3 @@ struct VELOCIDAD {
 
 void movimiento(MOVIMIENTOS movimiento, VELOCIDAD velocidad);
 void inicializarMotores();
-bool actualizarDeltaX();

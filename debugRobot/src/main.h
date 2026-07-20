@@ -4,11 +4,14 @@
 #include <arduino.h>
 
 enum ESTADOS{
+    ESPERANDO_INICIO,
     SWITCHEAR_ESTADO,
     ACCION,
     AVANZANDO,
     GIRANDO_DER,
     GIRANDO_IZQ,
+    GIRANDO_180,
+    AVANZANDO_CIEGO,
     FRENADO_F,
 }; 
 

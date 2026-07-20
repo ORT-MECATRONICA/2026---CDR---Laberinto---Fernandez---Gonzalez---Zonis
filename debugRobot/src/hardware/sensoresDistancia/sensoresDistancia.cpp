@@ -3,6 +3,7 @@
 #include <Wire.h>
 #include <VL53L0X.h> 
 #include "config.h"
+#include "hardware/logger/logger.h"
 //LAS REFERENCIAS DE STM ELECTRONICS SON LAS DE LA API FUENTE
 //ESTOY USANDO UNA BIBLOTECA DE POLOLU QUE USA ESA REFERENCIA
 //https://github.com/pololu/vl53l0x-arduino/blob/master/README.md
@@ -77,18 +78,24 @@ sensado actualizarSensado(){
 
   // Evitamos saturar el bus I2C (El ESP32 es tan rápido que ahogaba a los sensores)
   // Limitamos la lectura a cada 20ms (50Hz)
-  if(millis() - ultimoSensado > 20){
+//  if(millis() - ultimoSensado > 20){
     if((sensorIzq.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-      lecturaAct.distanciaIzq = (sensorIzq.readRangeContinuousMillimeters() - OFSET_IZQ);
+      uint16_t rawIzq = sensorIzq.readRangeContinuousMillimeters();
+      if (rawIzq > 2000) rawIzq = 2000;
+      lecturaAct.distanciaIzq = (rawIzq > OFSET_IZQ) ? (rawIzq - OFSET_IZQ) : 0;
     }
     if((sensorCent.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-      lecturaAct.distanciaCent = (sensorCent.readRangeContinuousMillimeters() - OFSET_CENT);
+      uint16_t rawCent = sensorCent.readRangeContinuousMillimeters();
+      if (rawCent > 2000) rawCent = 2000;
+      lecturaAct.distanciaCent = (rawCent > OFSET_CENT) ? (rawCent - OFSET_CENT) : 0;
     }
     if((sensorDer.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-      lecturaAct.distanciaDer = (sensorDer.readRangeContinuousMillimeters() - OFSET_DER);
+      uint16_t rawDer = sensorDer.readRangeContinuousMillimeters();
+      if (rawDer > 2000) rawDer = 2000;
+      lecturaAct.distanciaDer = (rawDer > OFSET_DER) ? (rawDer - OFSET_DER) : 0;
     }
     ultimoSensado = millis();
-  }
-  
+  //}
+  enviarString("I:" + String(lecturaAct.distanciaIzq) + " C:" + String(lecturaAct.distanciaCent) + " D:" + String(lecturaAct.distanciaDer));
   return lecturaAct;
 } 

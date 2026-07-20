@@ -1,8 +1,10 @@
 #include "sensoresDistancia.h"
 #include <Arduino.h>
+#include "hardware/logger/logger.h"
 #include <Wire.h>
 #include <VL53L0X.h> 
 #include "config.h"
+#include "hardware/logger/logger.h"
 //LAS REFERENCIAS DE STM ELECTRONICS SON LAS DE LA API FUENTE
 //ESTOY USANDO UNA BIBLOTECA DE POLOLU QUE USA ESA REFERENCIA
 //https://github.com/pololu/vl53l0x-arduino/blob/master/README.md
@@ -13,6 +15,8 @@ VL53L0X sensorDer, sensorIzq, sensorCent;
 void inicializacionSensoresDist(){
   // Es fundamental inicializar el bus I2C
   Wire.begin();
+  Wire.setTimeOut(100); // 100ms timeout para evitar que el ESP32 se congele por ruido de los motores
+
 
   // 1. APAGAR TODOS LOS SENSORES
   // Para usar múltiples sensores en el mismo bus, todos arrancan con la dir 0x29
@@ -71,24 +75,33 @@ void inicializacionSensoresDist(){
 
 sensado actualizarSensado(){
   // Hacer estática la variable para que guarde la última medición válida
-  // Si el loop corre más rápido que los 33ms del sensor, no resetea la distancia a 0.
   static sensado lecturaAct = {0,0,0}; 
-  static unsigned long ultimoSensado = 0;
 
-  // Evitamos saturar el bus I2C (El ESP32 es tan rápido que ahogaba a los sensores)
-  // Limitamos la lectura a cada 20ms (50Hz)
-  if(millis() - ultimoSensado > 20){
-    if((sensorIzq.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-      lecturaAct.distanciaIzq = (sensorIzq.readRangeContinuousMillimeters() - OFSET_IZQ);
-    }
-    if((sensorCent.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-      lecturaAct.distanciaCent = (sensorCent.readRangeContinuousMillimeters() - OFSET_CENT);
-    }
-    if((sensorDer.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
-      lecturaAct.distanciaDer = (sensorDer.readRangeContinuousMillimeters() - OFSET_DER);
-    }
-    ultimoSensado = millis();
+  if((sensorIzq.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
+    int32_t izq = (int32_t)sensorIzq.readRangeContinuousMillimeters() - OFSET_IZQ;
+    if (izq < 0) izq = 0;
+    if (izq > 300) izq = 300;
+    lecturaAct.distanciaIzq = izq;
+  }
+  if((sensorCent.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
+    int32_t cent = (int32_t)sensorCent.readRangeContinuousMillimeters() - OFSET_CENT;
+    if (cent < 0) cent = 0;
+    if (cent > 300) cent = 300;
+    lecturaAct.distanciaCent = cent;
+  }
+  if((sensorDer.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
+    int32_t der = (int32_t)sensorDer.readRangeContinuousMillimeters() - OFSET_DER;
+    if (der < 0) der = 0;
+    if (der > 300) der = 300;
+    lecturaAct.distanciaDer = der;
+  }
+
+  static unsigned long ultimoPrint = 0;
+  if(millis() - ultimoPrint > 100){
+    enviarString("I:" + String(lecturaAct.distanciaIzq) + " C:" + String(lecturaAct.distanciaCent) + " D:" + String(lecturaAct.distanciaDer));
+    ultimoPrint = millis();
   }
   
   return lecturaAct;
 } 
+

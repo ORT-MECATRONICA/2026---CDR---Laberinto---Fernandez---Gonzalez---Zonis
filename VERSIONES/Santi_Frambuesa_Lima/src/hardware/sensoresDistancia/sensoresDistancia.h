@@ -17,6 +17,8 @@ struct sensado {
     uint16_t distanciaIzq;
 };
 
+
+
 //Funciones para iniciar los sensores y medir la distancia.
 
 //Función para inicializar los tres sensores, llamar en el main.
@@ -24,3 +26,4 @@ void inicializacionSensoresDist();
 
 //Función para medir la distancia, llamar en el main. Devuelve un struct con las tres distancias medidas.
 sensado actualizarSensado();
+

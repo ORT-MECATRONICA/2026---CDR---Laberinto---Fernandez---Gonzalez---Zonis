@@ -17,25 +17,26 @@ void inicializarMotores(){
 void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
   if (velocidad.derecha == 0){
     velocidad.derecha = 50;
-  } else if (velocidad.izquierda == 0){
+  } 
+  if (velocidad.izquierda == 0){
     velocidad.izquierda = 50; 
   }
 
   switch (movimiento){
     case AVANZAR: {
-      digitalWrite(AIN1, LOW);
-      digitalWrite(AIN2, HIGH);
-      digitalWrite(BIN1, HIGH);
-      digitalWrite(BIN2, LOW);
+      digitalWrite(AIN1, HIGH);
+      digitalWrite(AIN2, LOW);
+      digitalWrite(BIN1, LOW);
+      digitalWrite(BIN2, HIGH);
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
       break;
     }
     case RETROCEDER: {
-      digitalWrite(AIN1, HIGH);
-      digitalWrite(AIN2, LOW);
-      digitalWrite(BIN1, LOW);
-      digitalWrite(BIN2, HIGH);
+      digitalWrite(AIN1, LOW);
+      digitalWrite(AIN2, HIGH);
+      digitalWrite(BIN1, HIGH);
+      digitalWrite(BIN2, LOW);
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
       break;

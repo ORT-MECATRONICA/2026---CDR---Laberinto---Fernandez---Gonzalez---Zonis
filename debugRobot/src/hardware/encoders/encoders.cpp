@@ -6,12 +6,7 @@
 ESP32Encoder encoderA;
 ESP32Encoder encoderB;
 
-void inicializarEncoders() {
-    pinMode(AIN1, OUTPUT);
-    pinMode(AIN2, OUTPUT);
-    pinMode(BIN1, OUTPUT);
-    pinMode(BIN2, OUTPUT);
-    
+void inicializarEncoders() {    
   ledcSetup(0, 5000, 8);
   ledcSetup(1, 5000, 8);
   ledcAttachPin(PWMA, 0);
@@ -30,4 +25,8 @@ int32_t verPulsosEncoderA() {
 
 int32_t verPulsosEncoderB() {
     return encoderB.getCount();
+}
+void resetearEncoders() {
+    encoderA.clearCount();
+    encoderB.clearCount();
 }
