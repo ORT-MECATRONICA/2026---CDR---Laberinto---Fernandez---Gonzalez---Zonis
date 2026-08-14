@@ -1,0 +1,60 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/sensorPiso/sensorPiso.h"
+#include "memoria/funcionesMapeo.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACIÓN DE VARIABLES GLOBALES
+//==============================================================
+
+sensado sensadoActual = {0,0,0};
+ESTADOS estadoActual = ESPERANDO_INICIO;
+VELOCIDAD velocidadActual = {0,0};
+
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON, INPUT);
+  inicializarLogger();
+  inicializacionSensoresDist(); 
+  inicializarMotores(); 
+  inicializarEncoders();
+  
+  Serial.println("--- PRUEBA MANUAL DE ENCODERS ---");
+  Serial.println("Motores apagados (modo libre).");
+  Serial.println("Gira las llantas con la mano y observa los valores.");
+  resetearEncoders();
+}
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+  // Mantenemos los motores apagados para que puedas girar libremente
+  movimiento(FRENO_F, {0,0});
+  
+  // Imprimimos los valores de ambos encoders
+  Serial.print("Encoder Izquierdo (A): ");
+  Serial.print(verPulsosEncoderA());
+  Serial.print("\t|\tEncoder Derecho (B): ");
+  Serial.println(verPulsosEncoderB());
+  
+  // Un delay de 200ms para no inundar el Serial Monitor y poder leerlo bien
+  delay(200); 
+  
+  // Si aprietas el botón, se resetean a 0 para que puedas medir desde un punto específico
+  if (digitalRead(BOTON) == LOW) {
+      while(digitalRead(BOTON) == LOW) { delay(10); } // Esperar a soltar
+      Serial.println(">>> ENCODERS RESETEADOS A 0 <<<");
+      resetearEncoders();
+  }
+}

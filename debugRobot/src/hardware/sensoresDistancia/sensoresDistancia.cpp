@@ -96,6 +96,6 @@ sensado actualizarSensado(){
     }
     ultimoSensado = millis();
   //}
-  enviarString("I:" + String(lecturaAct.distanciaIzq) + " C:" + String(lecturaAct.distanciaCent) + " D:" + String(lecturaAct.distanciaDer));
+  
   return lecturaAct;
 } 

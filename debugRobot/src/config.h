@@ -10,7 +10,7 @@
 #define X_START 5
 #define Y_START 5
 
-#define KP 1
+#define KP 0.5
 #define KI 0
 #define KD 0.3
 
@@ -26,8 +26,9 @@
 #define OFSET_IZQ 40
 #define OFSET_CENT 80
 
-#define PULSOS_90_GRADOS 3600
-#define PULSOS_AVANZAR_BLOQUEANTE 10000
+#define PULSOS_90_GRADOS 300 // (Aprox media vuelta, debes tunear este valor)
+#define PULSOS_AVANCE_PREGIRO 500 // (Para meter el centro del robot en la interseccion)
+#define PULSOS_AVANZAR_BLOQUEANTE 550 // (Aprox 1 vuelta de rueda ciega despues de doblar)
 
 //Es el tiempo de delay del Freno F. Es BLOQUEANTE
 #define DELAY_TIEMPO_FRENADO_EN_F 750
