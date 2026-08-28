@@ -35,41 +35,6 @@ void setup (){
 //==============================================================
 
 void loop(){
-  // --- INICIO SCRIPT DE PRUEBA DE MOTORES AISLADOS ---
-  static int pruebaAislada = 0;
-  if (pruebaAislada == 0) {
-      // Esperar a que presiones el botón
-      while(digitalRead(BOTON) == HIGH) { delay(10); }
-      while(digitalRead(BOTON) == LOW) { delay(10); }
-      delay(1000); // Tiempo para que quites la mano
-      
-      // 1. Motor Derecho hacia Adelante
-      enviarString("Motor Derecho ADELANTE");
-      movimiento(AVANZAR, {1, 100}); // Usamos 1 para evadir el bug de 50 en puenteH
-      delay(2000);
-      
-      // 2. Motor Derecho hacia Atrás
-      enviarString("Motor Derecho ATRAS");
-      movimiento(RETROCEDER, {1, 100});
-      delay(2000);
-      
-      // 3. Motor Izquierdo hacia Adelante
-      enviarString("Motor Izquierdo ADELANTE");
-      movimiento(AVANZAR, {100, 1});
-      delay(2000);
-      
-      // 4. Motor Izquierdo hacia Atrás
-      enviarString("Motor Izquierdo ATRAS");
-      movimiento(RETROCEDER, {100, 1});
-      delay(2000);
-      
-      movimiento(FRENO_F, {0,0});
-      enviarString("Prueba terminada");
-      pruebaAislada = 1; // Para que no se repita
-      return; // Evita que se ejecute el switch case de abajo
-  }
-  // --- FIN SCRIPT DE PRUEBA ---
-
   switch (estadoActual) {
       case ESPERANDO_INICIO:
           if (digitalRead(BOTON) == LOW) {

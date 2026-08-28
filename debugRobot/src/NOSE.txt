@@ -1,0 +1,128 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/sensorPiso/sensorPiso.h"
+#include "memoria/funcionesMapeo.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+bool robotIniciado = false;
+
+void setup (){
+  pinMode(BOTON, INPUT);
+  inicializarLogger();
+  inicializacionSensoresDist(); 
+  inicializarMotores(); 
+  inicializarEncoders();
+}
+
+void loop(){
+  //==============================================================
+  // 1. ESPERA DE INICIO
+  //==============================================================
+  if (!robotIniciado) {
+      if (digitalRead(BOTON) == LOW) {
+          // Antirrebote y tiempo de gracia para retirar la mano
+          while(digitalRead(BOTON) == LOW) { delay(10); }
+          delay(1000); 
+          robotIniciado = true;
+          enviarString("INICIANDO LABERINTO");
+      }
+      return; 
+  }
+
+  //==============================================================
+  // 2. LECTURA DE SENSORES
+  //==============================================================
+  sensado sensadoActual = actualizarSensado();
+
+  //==============================================================
+  // 3. TRIAGE: REGLA DE LA MANO DERECHA
+  //==============================================================
+
+  // PRIORIDAD 1: ¿Hueco a la derecha? (Doblamos sí o sí)
+  if (sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL) {
+      enviarString("Hueco DERECHA detectado");
+      
+      // A. Avanzamos para centrar el eje de las ruedas en la intersección
+      resetearEncoders();
+      movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      while (abs(verPulsosEncoderA()) < PULSOS_AVANCE_PREGIRO) { delay(1); }
+      
+      // B. Giramos 90 grados a la derecha
+      resetearEncoders();
+      movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER});
+      while (abs(verPulsosEncoderA()) < PULSOS_90_GRADOS) { delay(1); }
+      
+      // C. Avanzamos ciego para meternos en la nueva celda
+      resetearEncoders();
+      movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      while (abs(verPulsosEncoderA()) < PULSOS_AVANZAR_BLOQUEANTE) { delay(1); }
+      
+      resetearErrorAnterior(); 
+      return; // Fin del ciclo, volvemos a leer sensores
+  }
+
+  // PRIORIDAD 2: ¿Camino bloqueado al frente? (Necesitamos doblar)
+  if (sensadoActual.distanciaCent <= UMBRAL_PARED_ESTADO_NORMAL) {
+      
+      // La derecha ya fue evaluada (está bloqueada). Evaluamos izquierda.
+      if (sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL) {
+          enviarString("Pared enfrente. Girando IZQUIERDA");
+                // A. Avanzamos para centrar el eje de las ruedas en la intersección
+                resetearEncoders();
+                movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+                while (abs(verPulsosEncoderA()) < PULSOS_AVANCE_PREGIRO_IZQ) { delay(1); }
+      
+
+          // Giramos 90 grados a la izquierda (el robot ya está en el centro)
+          resetearEncoders();
+          movimiento(GIRAR_IZQ, {VEL_GIRO_IZQ, VEL_GIRO_DER});
+          while (abs(verPulsosEncoderA()) < PULSOS_90_GRADOS) { delay(1); }
+          
+      } else {
+          enviarString("Callejon sin salida. Media vuelta");
+          
+          // Izquierda y derecha bloqueadas. Giramos 180 grados.
+          resetearEncoders();
+          movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER}); // Rotamos hacia cualquier lado
+          while (abs(verPulsosEncoderA()) < (PULSOS_90_GRADOS * 2)) { delay(1); }
+      }
+      
+      // Avanzamos ciego para meternos en la nueva celda y salir del centro
+      resetearEncoders();
+      movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      while (abs(verPulsosEncoderA()) < PULSOS_AVANZAR_BLOQUEANTE) { delay(1); }
+      
+      resetearErrorAnterior();
+      return; 
+  }
+
+  //==============================================================
+  // PRIORIDAD 3: AVANZAR CON PID (Camino libre adelante)
+  //==============================================================
+  int16_t calculoCorreccion = 0;
+  
+  // Escudo contra el choque: Si falta alguna de las paredes laterales temporalmente, anulamos el PID
+  if (sensadoActual.distanciaIzq > 100 || sensadoActual.distanciaDer > 100) {
+      calculoCorreccion = 0;
+  } else {
+      calculoCorreccion = calcularCorreccion(sensadoActual);
+      calculoCorreccion = constrain(calculoCorreccion, -50, 50);
+  }
+  
+  int16_t velIzq = VEL_BASE_IZQ - calculoCorreccion; 
+  int16_t velDer = VEL_BASE_DER + calculoCorreccion; 
+  
+  VELOCIDAD velocidadActual;
+  velocidadActual.izquierda = constrain(velIzq, 0, 255);
+  velocidadActual.derecha = constrain(velDer, 0, 255);
+  
+  // Si la pared frontal se está acercando un poco (ej: antes de llegar a 200mm), 
+  // desaceleramos suavemente para estabilizarnos antes de girar
+ 
+  movimiento(AVANZAR, velocidadActual);
+}

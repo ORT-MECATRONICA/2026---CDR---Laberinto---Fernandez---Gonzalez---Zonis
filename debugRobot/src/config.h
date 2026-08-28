@@ -14,8 +14,8 @@
 #define KI 0
 #define KD 0.3
 
-#define VEL_BASE_DER 80
-#define VEL_BASE_IZQ 80
+#define VEL_BASE_DER 65
+#define VEL_BASE_IZQ 65
 
 #define VEL_GIRO_DER 100
 #define VEL_GIRO_IZQ 100
@@ -26,15 +26,16 @@
 #define OFSET_IZQ 40
 #define OFSET_CENT 80
 
-#define PULSOS_90_GRADOS 300 // (Aprox media vuelta, debes tunear este valor)
-#define PULSOS_AVANCE_PREGIRO 500 // (Para meter el centro del robot en la interseccion)
+#define PULSOS_90_GRADOS 110 // (Ajustado desde 300 porque daba 1 vuelta entera)
+#define PULSOS_AVANCE_PREGIRO 250 // Reducido para que no avance de más en la intersección
+#define PULSOS_AVANCE_PREGIRO_IZQ 100 // Reducido para que no avance de más en la intersección
 #define PULSOS_AVANZAR_BLOQUEANTE 550 // (Aprox 1 vuelta de rueda ciega despues de doblar)
 
 //Es el tiempo de delay del Freno F. Es BLOQUEANTE
 #define DELAY_TIEMPO_FRENADO_EN_F 750
 
 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
-#define UMBRAL_PARED_ESTADO_NORMAL 200 
+#define UMBRAL_PARED_ESTADO_NORMAL 100 
 
 //Es el umbral (MM) para que el robot gire si la pared está frente a él
 #define UMBRAL_PARED_FRENTE 120

@@ -13,9 +13,18 @@
 //                CREACIÓN DE VARIABLES GLOBALES
 //==============================================================
 
+// Dejamos las originales para no romper dependencias de otros archivos
 sensado sensadoActual = {0,0,0};
-ESTADOS estadoActual = ESPERANDO_INICIO;
+
 VELOCIDAD velocidadActual = {0,0};
+
+enum PASOS_TEST {
+    ESPERAR_BOTON,
+    EJECUTANDO_TEST,
+    MOSTRANDO_RESULTADOS
+};
+
+PASOS_TEST pasoTest = ESPERAR_BOTON; // Controla la secuencia de la prueba
 
 //==============================================================
 //                     VOID SETUP
@@ -27,142 +36,68 @@ void setup (){
   inicializacionSensoresDist(); 
   inicializarMotores(); 
   inicializarEncoders();
+  Serial.println("--- TEST DE DESEMPENO DE MOTORES ---");
+  Serial.println("Presiona el boton para iniciar la prueba.");
+  Serial.println("El robot avanzara recto por 2 segundos a la misma potencia.");
 }
 
+// Función auxiliar para esperar el botón limpiamente
+void esperarBoton() {
+    movimiento(FRENO_F, {0,0});
+    // Esperar a que se presione
+    while(digitalRead(BOTON) == HIGH) { delay(10); }
+    // Esperar a que se suelte
+    while(digitalRead(BOTON) == LOW) { delay(10); }
+    delay(500); // Tiempo de seguridad
+}
 
 //==============================================================
 //                       VOID LOOP
 //==============================================================
 
 void loop(){
-  switch (estadoActual) {
-      case ESPERANDO_INICIO:
-          if (digitalRead(BOTON) == LOW) {
-              // Esperamos a que se suelte el botón y damos 1 segundo para sacar la mano
-              while(digitalRead(BOTON) == LOW) { delay(10); }
-              delay(1000); 
-              estadoActual = SWITCHEAR_ESTADO;
-          }
-          break;
-
-      case SWITCHEAR_ESTADO:
-          sensadoActual = actualizarSensado();
-          enviarString("SW");
-          //ESTE ES EL TRIAGE DE PRIORIDADES, SE PUEDE CAMBIAR SIMPLEMENTE MODIFICANDO LOS IFS
-          if (sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL) {
-              // En vez de ir directo al giro, vamos al estado previo para centrar el robot
-              estadoActual = PREGIRO_DER;
-              resetearEncoders();              
-              break;
-          } else if (sensadoActual.distanciaCent > UMBRAL_PARED_ESTADO_NORMAL) {
-              estadoActual = AVANZANDO;
-              //AVANZANDO *** NO DEBE TENER RESET DE ENCODERS***
-              break;
-          } else if (sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL) {
-              // En vez de ir directo al giro, vamos al estado previo para centrar el robot
-              estadoActual = PREGIRO_IZQ;
-              resetearEncoders(); 
-              break;
-          } else {
-              // Callejón sin salida: Damos media vuelta
-              estadoActual = AVANZANDO; 
-              resetearEncoders(); 
-          }
-          break;
-
-      case AVANZANDO: {
-        enviarString("AVANZANDO");
-          sensadoActual = actualizarSensado();
-          int16_t calculoCorreccion = calcularCorreccion(sensadoActual);
-          calculoCorreccion = constrain(calculoCorreccion, -50, 50);
-          
-          int16_t velIzq = VEL_BASE_IZQ - calculoCorreccion; 
-          int16_t velDer = VEL_BASE_DER + calculoCorreccion; 
-          
-          velocidadActual.izquierda = constrain(velIzq, 0, 255);
-          velocidadActual.derecha = constrain(velDer, 0, 255);
-          if(sensadoActual.distanciaCent < 150){
-            int16_t derecha = velocidadActual.derecha / 2;
-            int16_t izquierda = velocidadActual.izquierda / 2;
-            velocidadActual = {izquierda, derecha};
-          }
-          movimiento(AVANZAR, velocidadActual);
-          estadoActual = SWITCHEAR_ESTADO;
-          break;
-      }
-
-      case PREGIRO_DER:
-        enviarString("PRE-Giro DER");
-        // Fase 1: Avanzamos al centro de la intersección (por ej. 300 pulsos)
-        if (abs(verPulsosEncoderA()) < 300) {
-            movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
-        } else {
-            // EL SECRETO: Borramos la memoria del encoder antes de girar
+    switch(pasoTest) {
+        case ESPERAR_BOTON:
+            esperarBoton();
+            Serial.println("-> INICIANDO PRUEBA...");
             resetearEncoders();
-            estadoActual = GIRANDO_DER;
+            pasoTest = EJECUTANDO_TEST;
+            break;
+            
+        case EJECUTANDO_TEST:
+            movimiento(AVANZAR, {100, 100}); // Misma potencia en ambos
+            delay(2000);
+            movimiento(FRENO_F, {0,0});
+            pasoTest = MOSTRANDO_RESULTADOS;
+            break;
+
+        case MOSTRANDO_RESULTADOS: {
+            // Obtenemos los pulsos y aplicamos valor absoluto por las dudas (depende de la polaridad)
+            int32_t pulsosA = abs(verPulsosEncoderA());
+            int32_t pulsosB = abs(verPulsosEncoderB());
+            
+            Serial.println("--- RESULTADOS ---");
+            Serial.print("Pulsos Encoder A: "); Serial.println(pulsosA);
+            Serial.print("Pulsos Encoder B: "); Serial.println(pulsosB);
+            
+            int32_t diferencia = abs(pulsosA - pulsosB);
+            
+            if (pulsosA > pulsosB + 15) {
+                Serial.print("-> El Motor A giro mas rapido (Diferencia de ");
+                Serial.print(diferencia);
+                Serial.println(" pulsos). El Motor B es mas debil o tiene friccion.");
+            } else if (pulsosB > pulsosA + 15) {
+                Serial.print("-> El Motor B giro mas rapido (Diferencia de ");
+                Serial.print(diferencia);
+                Serial.println(" pulsos). El Motor A es mas debil o tiene friccion.");
+            } else {
+                Serial.println("-> Ambos motores rinden parejo. Estan balanceados.");
+            }
+            Serial.println("");
+            Serial.println("Presiona el boton para repetir la prueba.");
+            
+            pasoTest = ESPERAR_BOTON;
+            break;
         }
-        break;
-
-      case GIRANDO_DER: 
-        enviarString("Girando DER");
-        // Fase 2: Rotamos. Como se reseteó a 0, contamos solo los pulsos del giro (ej. 100)
-        // Ya no hay riesgo de superposición matemática.
-        if (abs(verPulsosEncoderA()) < 100) { 
-            movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER});
-        } else {
-            resetearEncoders();
-            resetearErrorAnterior();
-            estadoActual = AVANZANDO_CIEGO;
-        }
-        break;
-
-      case PREGIRO_IZQ:
-        enviarString("PRE-Giro IZQ");
-        // Fase 1: Avanzamos al centro de la intersección
-        if (abs(verPulsosEncoderA()) < 300) {
-            movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
-        } else {
-            // EL SECRETO: Borramos la memoria del encoder antes de girar
-            resetearEncoders();
-            estadoActual = GIRANDO_IZQ;
-        }
-        break;
-
-      case GIRANDO_IZQ:
-        enviarString("Girando IZQ");
-        // Fase 2: Rotamos. Al contar desde cero otra vez, la función abs()
-        // convierte la cuenta regresiva en positiva (0 a 200). 
-        // El bug del tartamudeo desaparece para siempre.
-        if (abs(verPulsosEncoderA()) < 170) { 
-            movimiento(GIRAR_IZQ, {VEL_GIRO_IZQ, VEL_GIRO_DER});
-        } else {
-            resetearEncoders();
-            resetearErrorAnterior();
-            estadoActual = AVANZANDO_CIEGO;
-        }
-        break;
-
-      case GIRANDO_180:
-          break;
-
-      case FRENADO_F:
-          movimiento(FRENO_F, {0,0});
-          delay(DELAY_TIEMPO_FRENADO_EN_F);
-          estadoActual = SWITCHEAR_ESTADO;
-          break;
-
-      case AVANZANDO_CIEGO:
-          movimiento(AVANZAR, {150,150});
-         if (abs(verPulsosEncoderA()) >= PULSOS_AVANZAR_BLOQUEANTE) {
-              resetearErrorAnterior(); //ACA ESTÁ BIEN APLICADO
-              estadoActual = AVANZANDO;
-          } else {
-            estadoActual = AVANZANDO_CIEGO;
-          }
-          break; 
-
-      case ACCION:
-          estadoActual = SWITCHEAR_ESTADO;
-          break;
-  }
+    }
 }

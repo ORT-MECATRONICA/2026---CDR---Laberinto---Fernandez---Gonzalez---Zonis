@@ -1,19 +1,5 @@
-//MAIN.H
-
 #pragma once
-#include <arduino.h>
+#include <Arduino.h>
 
-enum ESTADOS{
-    ESPERANDO_INICIO,
-    SWITCHEAR_ESTADO,
-    ACCION,
-    AVANZANDO,
-    GIRANDO_DER,
-    GIRANDO_IZQ,
-    PREGIRO_DER,
-    PREGIRO_IZQ,
-    GIRANDO_180,
-    AVANZANDO_CIEGO,
-    FRENADO_F,
-}; 
-
+// main.h ha sido simplificado al máximo ya que la máquina de estados 
+// fue reemplazada por lógica procedural en el loop.

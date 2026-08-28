@@ -1,0 +1,54 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/movimiento/puenteH.h"
+#include "config.h"
+
+// Como no tenes Serial y solo un encoder anda, la mejor forma 
+// de saber cual motor es mas debil es una "Prueba de Desvio".
+// El robot va a acelerar ambos motores a la misma potencia. 
+// Si el robot se desvia hacia la DERECHA, el motor DERECHO es el debil (o tiene mas friccion).
+// Si el robot se desvia hacia la IZQUIERDA, el motor IZQUIERDO es el debil.
+
+enum PASOS_TEST {
+    ESPERAR_BOTON,
+    EJECUTANDO_TEST
+};
+
+PASOS_TEST pasoTest = ESPERAR_BOTON;
+
+void setup (){
+  pinMode(BOTON, INPUT);
+  inicializacionSensoresDist(); 
+  inicializarMotores(); 
+  // No inicializamos encoders ni serial porque no los podemos usar
+}
+
+void esperarBoton() {
+    movimiento(FRENO_F, {0,0});
+    while(digitalRead(BOTON) == HIGH) { delay(10); }
+    while(digitalRead(BOTON) == LOW) { delay(10); }
+    delay(1000); // Dar 1 segundo para sacar la mano
+}
+
+void loop(){
+    switch(pasoTest) {
+        case ESPERAR_BOTON:
+            esperarBoton();
+            pasoTest = EJECUTANDO_TEST;
+            break;
+            
+        case EJECUTANDO_TEST:
+            // Ponemos ambos motores a la misma potencia (ej. 100)
+            movimiento(AVANZAR, {100, 100}); 
+            
+            // Avanza durante 2 segundos.
+            // Aca tenes que mirar el robot. Si se curva para un lado, 
+            // ese lado es el motor que anda peor.
+            delay(2000);
+            
+            movimiento(FRENO_F, {0,0});
+            pasoTest = ESPERAR_BOTON;
+            break;
+    }
+}

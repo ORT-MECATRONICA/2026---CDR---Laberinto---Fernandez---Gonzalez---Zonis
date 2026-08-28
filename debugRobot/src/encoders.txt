@@ -14,7 +14,7 @@
 //==============================================================
 
 sensado sensadoActual = {0,0,0};
-ESTADOS estadoActual = ESPERANDO_INICIO;
+
 VELOCIDAD velocidadActual = {0,0};
 
 //==============================================================
