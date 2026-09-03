@@ -1,0 +1,54 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/sensorPiso/sensorPiso.h"
+#include "memoria/funcionesMapeo.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACIÓN DE VARIABLES GLOBALES
+//==============================================================
+
+// Dejamos las originales para no romper dependencias de otros archivos
+sensado sensadoActual = {0,0,0};
+
+VELOCIDAD velocidadActual = {0,0};
+
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON, INPUT);
+  inicializarMotores(); 
+}
+
+// Función auxiliar para esperar el botón limpiamente
+void esperarBoton() {
+    movimiento(FRENO_F, {0,0});
+    // Esperar a que se presione
+    while(digitalRead(BOTON) == HIGH) { delay(10); }
+    // Esperar a que se suelte
+    while(digitalRead(BOTON) == LOW) { delay(10); }
+    delay(500); // Tiempo de seguridad
+}
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+    //esperarBoton();
+    
+    // Prueba de rendimiento de motores
+    movimiento(AVANZAR, {100, 100}); 
+     
+    // Delay de más de dos segundos para evaluar visualmente si ambos funcionan por igual
+    delay(3000);
+    
+   // movimiento(FRENO_F, {0,0});
+}

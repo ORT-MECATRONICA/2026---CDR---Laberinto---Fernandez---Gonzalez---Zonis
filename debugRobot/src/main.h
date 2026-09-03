@@ -1,5 +1,16 @@
 #pragma once
 #include <Arduino.h>
 
-// main.h ha sido simplificado al máximo ya que la máquina de estados 
-// fue reemplazada por lógica procedural en el loop.
+enum ESTADOS {
+    ESPERANDO_INICIO,
+    SWITCHEAR_ESTADO,
+    PREGIRO_DER,
+    PREGIRO_IZQ,
+    AVANZANDO,
+    GIRANDO_DER,
+    GIRANDO_IZQ,
+    GIRANDO_180,
+    FRENADO_F,
+    AVANZANDO_CIEGO,
+    ACCION
+};
