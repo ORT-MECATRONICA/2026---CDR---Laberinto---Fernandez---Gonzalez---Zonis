@@ -16,19 +16,12 @@ void inicializarMotores(){
 }
 
 void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
-  if (velocidad.derecha == 0){
-    velocidad.derecha = 50;
-  } 
-  if (velocidad.izquierda == 0){
-    velocidad.izquierda = 50; 
-  }
-
   switch (movimiento){
     case AVANZAR: {
       digitalWrite(AIN1, HIGH);
       digitalWrite(AIN2, LOW);
       digitalWrite(BIN1, LOW);
-      digitalWrite(BIN2, HIGH); // AIN1 HIGH, AIN2 LOW, BIN1 HIGH, BIN2 LOW
+      digitalWrite(BIN2, HIGH); 
       ledcWrite(0, velocidad.izquierda);
       ledcWrite(1, velocidad.derecha);
       break;
@@ -74,27 +67,14 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
 }
 
 void girar90GradosBloqueante(MOVIMIENTOS direccion) {
-    // 1. Ponemos los contadores en 0
-    resetearEncoders();
-    
-    // 2. Iniciamos el movimiento de giro
     VELOCIDAD velGiro = {VEL_GIRO_IZQ, VEL_GIRO_DER}; 
     movimiento(direccion, velGiro);
-
-
-    while(abs(verPulsosEncoderA()) < PULSOS_90_GRADOS) {
-        // Un delay mínimo de 1ms para que el ESP32 no colapse la tarea
-        delay(1); 
-    }
+    delay(TIEMPO_90_GRADOS);
+    movimiento(FRENO_F, {0,0});
 }
 
 void avanzarBloqueante(){
-  resetearEncoders();
-  movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
-
-
-    while(abs(verPulsosEncoderA()) < PULSOS_AVANZAR_BLOQUEANTE) {
-        // Un delay mínimo de 1ms para que el ESP32 no colapse la tarea
-        delay(1); 
-    }
+    movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+    delay(TIEMPO_AVANZAR_BLOQUEANTE);
+    movimiento(FRENO_F, {0,0});
 }

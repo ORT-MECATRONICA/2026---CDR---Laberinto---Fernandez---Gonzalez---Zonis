@@ -22,5 +22,10 @@ struct sensado {
 //Función para inicializar los tres sensores, llamar en el main.
 void inicializacionSensoresDist();
 
+//Función para incializar los sensores HCSR04
+void inicializacionSensoresHCSR04();
 //Función para medir la distancia, llamar en el main. Devuelve un struct con las tres distancias medidas.
 sensado actualizarSensado();
+
+//Función para medir la distancia de los sensores HCSR04
+sensado actualizarSensadoHCSR04();

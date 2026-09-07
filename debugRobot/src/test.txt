@@ -50,5 +50,20 @@ void loop(){
     // Delay de más de dos segundos para evaluar visualmente si ambos funcionan por igual
     delay(3000);
     
+    movimiento(RETROCEDER, {100, 100}); 
+     
+    // Delay de más de dos segundos para evaluar visualmente si ambos funcionan por igual
+    delay(3000);
+    
+    movimiento(GIRAR_DER, {100, 100}); 
+     
+    // Delay de más de dos segundos para evaluar visualmente si ambos funcionan por igual
+    delay(3000);
+    
+    movimiento(GIRAR_IZQ, {100, 100}); 
+     
+    // Delay de más de dos segundos para evaluar visualmente si ambos funcionan por igual
+    delay(3000);
+    
    // movimiento(FRENO_F, {0,0});
 }

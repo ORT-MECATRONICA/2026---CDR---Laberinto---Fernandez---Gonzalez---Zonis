@@ -99,3 +99,101 @@ sensado actualizarSensado(){
   
   return lecturaAct;
 } 
+//==============================================================
+//                IMPLEMENTACIÓN HC-SR04 CON INTERRUPCIONES
+//==============================================================
+
+// Variables volátiles para las ISR (rutinas de servicio de interrupción)
+volatile unsigned long inicioPulsoDer = 0;
+volatile unsigned long inicioPulsoIzq = 0;
+volatile unsigned long inicioPulsoCent = 0;
+
+volatile uint16_t distDerVolatile = 0;
+volatile uint16_t distIzqVolatile = 0;
+volatile uint16_t distCentVolatile = 0;
+
+// ISR para Sensor Derecho
+void IRAM_ATTR isr_echo_der() {
+    if (digitalRead(ECHO_DER) == HIGH) {
+        inicioPulsoDer = micros();
+    } else {
+        unsigned long duracion = micros() - inicioPulsoDer;
+        distDerVolatile = duracion / 5.8; // Convierte a milímetros (58 para cm)
+    }
+}
+
+// ISR para Sensor Izquierdo
+void IRAM_ATTR isr_echo_izq() {
+    if (digitalRead(ECHO_IZQ) == HIGH) {
+        inicioPulsoIzq = micros();
+    } else {
+        unsigned long duracion = micros() - inicioPulsoIzq;
+        distIzqVolatile = duracion / 5.8; 
+    }
+}
+
+// ISR para Sensor Central
+void IRAM_ATTR isr_echo_cent() {
+    if (digitalRead(ECHO_CENT) == HIGH) {
+        inicioPulsoCent = micros();
+    } else {
+        unsigned long duracion = micros() - inicioPulsoCent;
+        distCentVolatile = duracion / 5.8; 
+    }
+}
+
+void inicializacionSensoresHCSR04() {
+    pinMode(TRIG_DER, OUTPUT);
+    pinMode(ECHO_DER, INPUT);
+    pinMode(TRIG_IZQ, OUTPUT);
+    pinMode(ECHO_IZQ, INPUT);
+    pinMode(TRIG_CENT, OUTPUT);
+    pinMode(ECHO_CENT, INPUT);
+
+    digitalWrite(TRIG_DER, LOW);
+    digitalWrite(TRIG_IZQ, LOW);
+    digitalWrite(TRIG_CENT, LOW);
+
+    // Adjuntar las interrupciones en modo CHANGE para detectar subidas y bajadas
+    attachInterrupt(digitalPinToInterrupt(ECHO_DER), isr_echo_der, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ECHO_IZQ), isr_echo_izq, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ECHO_CENT), isr_echo_cent, CHANGE);
+}
+
+sensado actualizarSensadoHCSR04() {
+    static unsigned long ultimoTrig = 0;
+    static uint8_t sensorTurno = 0;
+
+    // Ejecutar triggers secuenciales cada 15ms para evitar bloqueo y solapamiento acústico
+    if (millis() - ultimoTrig >= 15) {
+        switch(sensorTurno) {
+            case 0:
+                digitalWrite(TRIG_DER, HIGH);
+                delayMicroseconds(10);
+                digitalWrite(TRIG_DER, LOW);
+                break;
+            case 1:
+                digitalWrite(TRIG_CENT, HIGH);
+                delayMicroseconds(10);
+                digitalWrite(TRIG_CENT, LOW);
+                break;
+            case 2:
+                digitalWrite(TRIG_IZQ, HIGH);
+                delayMicroseconds(10);
+                digitalWrite(TRIG_IZQ, LOW);
+                break;
+        }
+        
+        sensorTurno++;
+        if (sensorTurno > 2) sensorTurno = 0;
+        
+        ultimoTrig = millis();
+    }
+
+    sensado lectura;
+    lectura.distanciaDer = distDerVolatile;
+    lectura.distanciaCent = distCentVolatile;
+    lectura.distanciaIzq = distIzqVolatile;
+
+    return lectura;
+}

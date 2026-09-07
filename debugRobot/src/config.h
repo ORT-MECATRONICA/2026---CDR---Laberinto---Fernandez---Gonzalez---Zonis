@@ -43,19 +43,19 @@
 //     PINES
 //===================
 
-#define BOTON 35 
+#define BOTON 36 
 
 //Checheados - motores
-#define AIN1 25
-#define AIN2 33
-#define BIN1 27
-#define BIN2 26
-#define PWMA 32
-#define PWMB 14
+#define AIN1 27
+#define AIN2 26
+#define BIN1 14
+#define BIN2 12
+#define PWMA 25
+#define PWMB 13
 #define ENC_A_1 16
-#define ENC_B_1 17
-#define ENC_A_2 4
-#define ENC_B_2 2
+#define ENC_B_1 4
+#define ENC_A_2 18
+#define ENC_B_2 17
 //===================
 // PINES VL53L0X
 //===================
@@ -65,4 +65,26 @@
 #define adressDer 0x30
 #define adressIzq 0x31
 #define adressCent 0x32
+
+//===================
+// PINES HC-SR04
+//===================
+#define TRIG_DER 19 //ok
+#define ECHO_DER 23 //ok
+#define TRIG_IZQ 33
+#define ECHO_IZQ 35
+#define TRIG_CENT 32
+#define ECHO_CENT 34
+
+
+//===================
+
+//===================
+
+// CONSTANTES DE TIEMPO (ms)
+// Reemplazan a los PULSOS de los encoders
+//===================
+#define TIEMPO_90_GRADOS 350
+#define TIEMPO_AVANCE_PREGIRO 400
+#define TIEMPO_AVANZAR_BLOQUEANTE 500
 

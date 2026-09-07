@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "hardware/logger/logger.h"
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
-#include "hardware/sensorPiso/sensorPiso.h"
+
 #include "memoria/funcionesMapeo.h"
 #include "hardware/movimiento/PID.h"
 #include "hardware/movimiento/puenteH.h"
@@ -10,21 +10,23 @@
 #include "config.h"
 
 //==============================================================
-//                CREACIÓN DE VARIABLES GLOBALES
+//                CREACI�N DE VARIABLES GLOBALES
 //==============================================================
 
 sensado sensadoActual = {0,0,0};
 ESTADOS estadoActual = ESPERANDO_INICIO;
 VELOCIDAD velocidadActual = {0,0};
+unsigned long tiempoInicioEstado = 0; // Para giros por tiempo
 
 //==============================================================
 //                     VOID SETUP
 //==============================================================
 
 void setup (){
-  pinMode(BOTON, INPUT);
+  pinMode(BOTON, INPUT_PULLUP);
   inicializarLogger();
-  inicializacionSensoresDist(); 
+  inicializacionSensoresHCSR04(); 
+
   inicializarMotores(); 
   inicializarEncoders();
 }
@@ -38,41 +40,36 @@ void loop(){
   switch (estadoActual) {
       case ESPERANDO_INICIO:
           if (digitalRead(BOTON) == LOW) {
-              // Esperamos a que se suelte el botón y damos 1 segundo para sacar la mano
               while(digitalRead(BOTON) == LOW) { delay(10); }
-              delay(1000); 
+              delay(5000); 
               estadoActual = SWITCHEAR_ESTADO;
           }
           break;
 
       case SWITCHEAR_ESTADO:
-          sensadoActual = actualizarSensado();
+          sensadoActual = actualizarSensadoHCSR04(); 
           enviarString("SW");
-          //ESTE ES EL TRIAGE DE PRIORIDADES, SE PUEDE CAMBIAR SIMPLEMENTE MODIFICANDO LOS IFS
+          
           if (sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL) {
-              // En vez de ir directo al giro, vamos al estado previo para centrar el robot
               estadoActual = PREGIRO_DER;
-              resetearEncoders();              
+              tiempoInicioEstado = millis();
               break;
           } else if (sensadoActual.distanciaCent > UMBRAL_PARED_ESTADO_NORMAL) {
               estadoActual = AVANZANDO;
-              //AVANZANDO *** NO DEBE TENER RESET DE ENCODERS***
               break;
           } else if (sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL) {
-              // En vez de ir directo al giro, vamos al estado previo para centrar el robot
               estadoActual = PREGIRO_IZQ;
-              resetearEncoders(); 
+              tiempoInicioEstado = millis();
               break;
           } else {
-              // Callejón sin salida: Damos media vuelta
-              estadoActual = AVANZANDO; 
-              resetearEncoders(); 
+              estadoActual = GIRANDO_180;
+              tiempoInicioEstado = millis();
           }
           break;
 
       case AVANZANDO: {
-        enviarString("AVANZANDO");
-          sensadoActual = actualizarSensado();
+          enviarString("AVANZANDO");
+          sensadoActual = actualizarSensadoHCSR04(); 
           int16_t calculoCorreccion = calcularCorreccion(sensadoActual);
           calculoCorreccion = constrain(calculoCorreccion, -50, 50);
           
@@ -81,11 +78,7 @@ void loop(){
           
           velocidadActual.izquierda = constrain(velIzq, 0, 255);
           velocidadActual.derecha = constrain(velDer, 0, 255);
-          if(sensadoActual.distanciaCent < 150){
-            int16_t derecha = velocidadActual.derecha / 2;
-            int16_t izquierda = velocidadActual.izquierda / 2;
-            velocidadActual = {izquierda, derecha};
-          }
+          
           movimiento(AVANZAR, velocidadActual);
           estadoActual = SWITCHEAR_ESTADO;
           break;
@@ -93,57 +86,56 @@ void loop(){
 
       case PREGIRO_DER:
         enviarString("PRE-Giro DER");
-        // Fase 1: Avanzamos al centro de la intersección (por ej. 300 pulsos)
-        if (abs(verPulsosEncoderA()) < 300) {
+        if ((millis() - tiempoInicioEstado) < TIEMPO_AVANCE_PREGIRO) { 
             movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
         } else {
-            // EL SECRETO: Borramos la memoria del encoder antes de girar
-            resetearEncoders();
             estadoActual = GIRANDO_DER;
+            tiempoInicioEstado = millis();
         }
         break;
 
       case GIRANDO_DER: 
         enviarString("Girando DER");
-        // Fase 2: Rotamos. Como se reseteó a 0, contamos solo los pulsos del giro (ej. 100)
-        // Ya no hay riesgo de superposición matemática.
-        if (abs(verPulsosEncoderA()) < 100) { 
+        if ((millis() - tiempoInicioEstado) < TIEMPO_90_GRADOS) { 
             movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER});
         } else {
-            resetearEncoders();
             resetearErrorAnterior();
             estadoActual = AVANZANDO_CIEGO;
+            tiempoInicioEstado = millis();
         }
         break;
 
       case PREGIRO_IZQ:
         enviarString("PRE-Giro IZQ");
-        // Fase 1: Avanzamos al centro de la intersección
-        if (abs(verPulsosEncoderA()) < 300) {
+        if ((millis() - tiempoInicioEstado) < TIEMPO_AVANCE_PREGIRO) { 
             movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
         } else {
-            // EL SECRETO: Borramos la memoria del encoder antes de girar
-            resetearEncoders();
             estadoActual = GIRANDO_IZQ;
+            tiempoInicioEstado = millis();
         }
         break;
 
       case GIRANDO_IZQ:
         enviarString("Girando IZQ");
-        // Fase 2: Rotamos. Al contar desde cero otra vez, la función abs()
-        // convierte la cuenta regresiva en positiva (0 a 200). 
-        // El bug del tartamudeo desaparece para siempre.
-        if (abs(verPulsosEncoderA()) < 170) { 
+        if ((millis() - tiempoInicioEstado) < TIEMPO_90_GRADOS) { 
             movimiento(GIRAR_IZQ, {VEL_GIRO_IZQ, VEL_GIRO_DER});
         } else {
-            resetearEncoders();
             resetearErrorAnterior();
             estadoActual = AVANZANDO_CIEGO;
+            tiempoInicioEstado = millis();
         }
         break;
 
       case GIRANDO_180:
-          break;
+          enviarString("Girando 180");
+          if ((millis() - tiempoInicioEstado) < (TIEMPO_90_GRADOS * 2)) {
+              movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER});
+          } else {
+              resetearErrorAnterior();
+              estadoActual = AVANZANDO_CIEGO;
+              tiempoInicioEstado = millis();
+          }
+          break; 
 
       case FRENADO_F:
           movimiento(FRENO_F, {0,0});
@@ -153,8 +145,8 @@ void loop(){
 
       case AVANZANDO_CIEGO:
           movimiento(AVANZAR, {150,150});
-         if (abs(verPulsosEncoderA()) >= PULSOS_AVANZAR_BLOQUEANTE) {
-              resetearErrorAnterior(); //ACA ESTÁ BIEN APLICADO
+         if ((millis() - tiempoInicioEstado) >= TIEMPO_AVANZAR_BLOQUEANTE) {
+              resetearErrorAnterior(); 
               estadoActual = AVANZANDO;
           } else {
             estadoActual = AVANZANDO_CIEGO;
