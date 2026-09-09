@@ -1,0 +1,16 @@
+#pragma once
+#include <Arduino.h>
+
+enum ESTADOS {
+    ESPERANDO_INICIO,
+    SWITCHEAR_ESTADO,
+    PREGIRO_DER,
+    PREGIRO_IZQ,
+    AVANZANDO,
+    GIRANDO_DER,
+    GIRANDO_IZQ,
+    GIRANDO_180,
+    FRENADO_F,
+    AVANZANDO_CIEGO,
+    ACCION
+};

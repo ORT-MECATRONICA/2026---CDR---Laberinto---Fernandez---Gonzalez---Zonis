@@ -1,0 +1,160 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+
+#include "memoria/funcionesMapeo.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACI�N DE VARIABLES GLOBALES
+//==============================================================
+
+sensado sensadoActual = {0,0,0};
+ESTADOS estadoActual = ESPERANDO_INICIO;
+VELOCIDAD velocidadActual = {0,0};
+unsigned long tiempoInicioEstado = 0; // Para giros por tiempo
+
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON, INPUT_PULLUP);
+  inicializarLogger();
+  inicializacionSensoresHCSR04(); 
+
+  inicializarMotores(); 
+  inicializarEncoders();
+}
+
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+  switch (estadoActual) {
+      case ESPERANDO_INICIO:
+          if (digitalRead(BOTON) == LOW) {
+              while(digitalRead(BOTON) == LOW) { delay(10); }
+              delay(5000); 
+              estadoActual = SWITCHEAR_ESTADO;
+          }
+          break;
+
+      case SWITCHEAR_ESTADO:
+          sensadoActual = actualizarSensadoHCSR04(); 
+          enviarString("SW");
+          
+          if (sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL) {
+              estadoActual = PREGIRO_DER;
+              tiempoInicioEstado = millis();
+              break;
+          } else if (sensadoActual.distanciaCent > UMBRAL_PARED_ESTADO_NORMAL) {
+              estadoActual = AVANZANDO;
+              break;
+          } else if (sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL) {
+              estadoActual = PREGIRO_IZQ;
+              tiempoInicioEstado = millis();
+              break;
+          } else {
+              estadoActual = GIRANDO_180;
+              tiempoInicioEstado = millis();
+          }
+          break;
+
+      case AVANZANDO: {
+          enviarString("AVANZANDO");
+          sensadoActual = actualizarSensadoHCSR04(); 
+          int16_t calculoCorreccion = calcularCorreccion(sensadoActual);
+          calculoCorreccion = constrain(calculoCorreccion, -50, 50);
+          
+          int16_t velIzq = VEL_BASE_IZQ - calculoCorreccion; 
+          int16_t velDer = VEL_BASE_DER + calculoCorreccion; 
+          
+          velocidadActual.izquierda = constrain(velIzq, 0, 255);
+          velocidadActual.derecha = constrain(velDer, 0, 255);
+          
+          movimiento(AVANZAR, velocidadActual);
+          estadoActual = SWITCHEAR_ESTADO;
+          break;
+      }
+
+      case PREGIRO_DER:
+        enviarString("PRE-Giro DER");
+        if ((millis() - tiempoInicioEstado) < TIEMPO_AVANCE_PREGIRO) { 
+            movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+        } else {
+            estadoActual = GIRANDO_DER;
+            tiempoInicioEstado = millis();
+        }
+        break;
+
+      case GIRANDO_DER: 
+        enviarString("Girando DER");
+        if ((millis() - tiempoInicioEstado) < TIEMPO_90_GRADOS) { 
+            movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER});
+        } else {
+            resetearErrorAnterior();
+            estadoActual = AVANZANDO_CIEGO;
+            tiempoInicioEstado = millis();
+        }
+        break;
+
+      case PREGIRO_IZQ:
+        enviarString("PRE-Giro IZQ");
+        if ((millis() - tiempoInicioEstado) < TIEMPO_AVANCE_PREGIRO) { 
+            movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+        } else {
+            estadoActual = GIRANDO_IZQ;
+            tiempoInicioEstado = millis();
+        }
+        break;
+
+      case GIRANDO_IZQ:
+        enviarString("Girando IZQ");
+        if ((millis() - tiempoInicioEstado) < TIEMPO_90_GRADOS) { 
+            movimiento(GIRAR_IZQ, {VEL_GIRO_IZQ, VEL_GIRO_DER});
+        } else {
+            resetearErrorAnterior();
+            estadoActual = AVANZANDO_CIEGO;
+            tiempoInicioEstado = millis();
+        }
+        break;
+
+      case GIRANDO_180:
+          enviarString("Girando 180");
+          if ((millis() - tiempoInicioEstado) < (TIEMPO_90_GRADOS * 2)) {
+              movimiento(GIRAR_DER, {VEL_GIRO_IZQ, VEL_GIRO_DER});
+          } else {
+              resetearErrorAnterior();
+              estadoActual = AVANZANDO_CIEGO;
+              tiempoInicioEstado = millis();
+          }
+          break; 
+
+      case FRENADO_F:
+          movimiento(FRENO_F, {0,0});
+          delay(DELAY_TIEMPO_FRENADO_EN_F);
+          estadoActual = SWITCHEAR_ESTADO;
+          break;
+
+      case AVANZANDO_CIEGO:
+          movimiento(AVANZAR, {150,150});
+         if ((millis() - tiempoInicioEstado) >= TIEMPO_AVANZAR_BLOQUEANTE) {
+              resetearErrorAnterior(); 
+              estadoActual = AVANZANDO;
+          } else {
+            estadoActual = AVANZANDO_CIEGO;
+          }
+          break; 
+
+      case ACCION:
+          estadoActual = SWITCHEAR_ESTADO;
+          break;
+  }
+}

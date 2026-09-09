@@ -1,0 +1,114 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/sensorPiso/sensorPiso.h"
+#include "memoria/funcionesMapeo.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACIÓN DE VARIABLES GLOBALES
+//==============================================================
+
+// Dejamos las originales para no romper dependencias de otros archivos
+sensado sensadoActual = {0,0,0};
+ESTADOS estadoActual = ESPERANDO_INICIO;
+VELOCIDAD velocidadActual = {0,0};
+
+int pasoTest = 0; // Controla la secuencia de la prueba
+
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON, INPUT);
+  inicializarLogger();
+  inicializacionSensoresDist(); 
+  inicializarMotores(); 
+  inicializarEncoders();
+  Serial.println("--- INICIO TEST DE HARDWARE ---");
+  Serial.println("Presiona el boton para comenzar la prueba Izquierda");
+}
+
+// Función auxiliar para esperar el botón limpiamente
+void esperarBoton() {
+    movimiento(FRENO_F, {0,0});
+    // Esperar a que se presione (por si ya no lo está)
+    while(digitalRead(BOTON) == HIGH) { delay(10); }
+    // Esperar a que se suelte
+    while(digitalRead(BOTON) == LOW) { delay(10); }
+    delay(500); // Tiempo de seguridad para sacar la mano
+}
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+    switch(pasoTest) {
+        case 0: // Esperar inicio
+            esperarBoton();
+            Serial.println("-> PRUEBA IZQUIERDA: Acerca la mano al sensor Izquierdo");
+            pasoTest = 1;
+            break;
+            
+        case 1: // Test Izquierdo
+            sensadoActual = actualizarSensado();
+            // Si lee menos de 100mm (y mayor a 0 para ignorar lecturas muertas)
+            if (sensadoActual.distanciaIzq > 0 && sensadoActual.distanciaIzq < 100) {
+                // Usamos 1 en vez de 0 en el motor derecho para evadir tu "if (velocidad == 0) { 50 }"
+                // de puenteH.cpp, así el motor derecho no gira ciegamente a 50.
+                movimiento(AVANZAR, {80, 1}); 
+            } else {
+                movimiento(FRENO_F, {0,0});
+            }
+            
+            if (digitalRead(BOTON) == LOW) {
+                esperarBoton();
+                Serial.println("-> PRUEBA CENTRO: Acerca la mano al sensor Central");
+                pasoTest = 2;
+            }
+            break;
+            
+        case 2: // Test Centro
+            sensadoActual = actualizarSensado();
+            if (sensadoActual.distanciaCent > 0 && sensadoActual.distanciaCent < 100) {
+                // Ambos motores avanzan
+                movimiento(AVANZAR, {80, 80}); 
+            } else {
+                movimiento(FRENO_F, {0,0});
+            }
+            
+            if (digitalRead(BOTON) == LOW) {
+                esperarBoton();
+                Serial.println("-> PRUEBA DERECHA: Acerca la mano al sensor Derecho");
+                pasoTest = 3;
+            }
+            break;
+
+        case 3: // Test Derecho
+            sensadoActual = actualizarSensado();
+            if (sensadoActual.distanciaDer > 0 && sensadoActual.distanciaDer < 100) {
+                // Solo motor derecho avanza
+                movimiento(AVANZAR, {1, 80}); 
+            } else {
+                movimiento(FRENO_F, {0,0});
+            }
+            
+            if (digitalRead(BOTON) == LOW) {
+                esperarBoton();
+                Serial.println("--- FIN DEL TEST ---");
+                pasoTest = 4;
+            }
+            break;
+            
+        case 4: // Fin
+            movimiento(FRENO_F, {0,0});
+            delay(100);
+            break;
+    }
+}
