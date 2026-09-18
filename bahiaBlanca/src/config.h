@@ -43,7 +43,8 @@
 //     PINES
 //===================
 
-#define BOTON 36 
+#define BOTON1 36
+#define BOTON2 39 
 
 //Checheados - motores
 #define AIN1 27
