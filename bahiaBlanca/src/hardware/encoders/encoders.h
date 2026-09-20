@@ -12,3 +12,5 @@ int32_t verPulsosEncoderB();
 
 //Función para resetear encoders
 void resetearEncoders();
+
+void ver_pulsos_encoder_a();

@@ -1,43 +1,29 @@
 #include "PID.h"
+#include <Arduino.h>
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
 #include "config.h"
 
 static int16_t errorAnterior = 0;
 
-int16_t calcularCorreccion(sensado mediciones){
-    // Evaluamos si las paredes est�n presentes (menor al umbral normal + un margen)
-    bool hayIzq = mediciones.distanciaIzq < (UMBRAL_PARED_ESTADO_NORMAL + 50);
-    bool hayDer = mediciones.distanciaDer < (UMBRAL_PARED_ESTADO_NORMAL + 50);
-    
+int16_t calcularCorreccion(sensado mediciones) {
+    bool paredIzqValida = (mediciones.distanciaIzq > 0) && (mediciones.distanciaIzq <= UMBRAL_PARED_VALIDA_PID);
+    bool paredDerValida = (mediciones.distanciaDer > 0) && (mediciones.distanciaDer <= UMBRAL_PARED_VALIDA_PID);
+
     int16_t error = 0;
-    
-    if (hayIzq && hayDer) {
-        // Ambas paredes presentes: centrarse entre ellas
-        error = (int16_t)mediciones.distanciaIzq - (int16_t)mediciones.distanciaDer;
-    } else if (hayIzq) {
-        // Solo pared izquierda: mantenerse a la distancia ideal (OFSET_IZQ representa nuestro objetivo ideal)
-        error = (int16_t)mediciones.distanciaIzq - OFSET_IZQ;
-    } else if (hayDer) {
-        // Solo pared derecha
-        error = OFSET_DER - (int16_t)mediciones.distanciaDer;
+
+    if (paredIzqValida && paredDerValida) {
+        // Ambas paredes presentes: centrado diferencial (signo positivo vira hacia la derecha)
+        error = (int16_t)mediciones.distanciaDer - (int16_t)mediciones.distanciaIzq;
     } else {
-        // Ninguna pared presente: avanzar recto
+        // Si alguna de las dos paredes no es válida (o sea que es una intersección o giro), NO HAY PID
         error = 0;
+        errorAnterior = 0;
     }
 
-    int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
-    
-    errorAnterior = error; 
-    
-    return correccion;
-}
+    int16_t correccion = (int16_t)((KP * error) + (KD * (error - errorAnterior)));
+    errorAnterior = error;
 
-int16_t calcularCorreccionRightHand(int16_t error){
-    int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
-    
-    errorAnterior = error; 
-    
-    return constrain(correccion, -50, 50);
+    return constrain(correccion, -MAX_CORRECCION_PID, MAX_CORRECCION_PID);
 }
 
 void resetearErrorAnterior() {

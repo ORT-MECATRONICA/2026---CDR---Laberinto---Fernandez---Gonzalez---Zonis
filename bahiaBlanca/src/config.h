@@ -44,7 +44,7 @@
 //===================
 
 #define BOTON1 36
-#define BOTON2 39 
+#define BOTON2 39
 
 //Checheados - motores
 #define AIN1 27
@@ -54,28 +54,19 @@
 #define PWMA 25
 #define PWMB 13
 #define ENC_A_1 16
-#define ENC_B_1 4
-#define ENC_A_2 18
-#define ENC_B_2 17
+#define ENC_B_1 17
+#define ENC_A_2 4
+#define ENC_B_2 5 // Reasignado para resolver conflicto con xshutPinIzq (18)
 //===================
 // PINES VL53L0X
 //===================
-#define xshutPinDer 23
-#define xshutPinIzq 18
-#define xshutPinCent 19
+#define xshutPinDer 23 // 3 es der
+#define xshutPinIzq 18 //1 es izq
+#define xshutPinCent 19 //2 es centro
 #define adressDer 0x30
 #define adressIzq 0x31
 #define adressCent 0x32
 
-//===================
-// PINES HC-SR04
-//===================
-#define TRIG_DER 19 //ok
-#define ECHO_DER 23 //ok
-#define TRIG_IZQ 33
-#define ECHO_IZQ 35
-#define TRIG_CENT 32
-#define ECHO_CENT 34
 
 
 //===================
@@ -88,4 +79,32 @@
 #define TIEMPO_90_GRADOS 350
 #define TIEMPO_AVANCE_PREGIRO 400
 #define TIEMPO_AVANZAR_BLOQUEANTE 500
+
+//===================
+// FILTRO MEDIANA VL53L0X (R1)
+//===================
+#define FILTRO_MEDIANA_N 5
+#define DISTANCIA_MAX_VALIDA 2000
+#define TIMEOUT_SENSOR_MS 500
+#define DELAY_BOOT_SENSOR_MS 10
+
+//===================
+// DEBOUNCE FSM (R2)
+//===================
+#define DEBOUNCE_LECTURAS 5
+
+//===================
+// CALLEJON Y GIROS (R3 & R4)
+//===================
+#define PULSOS_180_GRADOS 220
+#define TIEMPO_180_GRADOS 700
+#define PULSOS_AVANZAR_POST_GIRO 100
+
+//===================
+// CONTROL PID Y GUARDA (R5)
+//===================
+#define UMBRAL_PARED_VALIDA_PID 110
+#define DISTANCIA_OBJETIVO_PARED_IZQ 40
+#define DISTANCIA_OBJETIVO_PARED_DER 47
+#define MAX_CORRECCION_PID 50
 

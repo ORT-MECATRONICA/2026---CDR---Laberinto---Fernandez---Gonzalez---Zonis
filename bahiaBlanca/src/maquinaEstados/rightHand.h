@@ -6,16 +6,26 @@
 #include "hardware/logger/logger.h"
 #include "hardware/movimiento/puenteH.h"
 #include "hardware/movimiento/PID.h"
+#include "main.h"
 
-bool right_hand();
+ESTADOS right_hand();
 
-enum ESTADOS {
+enum SUBESTADOS {
     AVANZANDO,
     PREPARANDOME_PARA_GIRAR_DER,
     GIRANDO_DER,
     PREPARANDOME_PARA_GIRAR_IZQ,
     GIRANDO_IZQ,
+    GIRANDO_180,
+    POST_GIRO_AVANZAR,
     FIN,
+};
+
+struct FILTRO_DEBOUNCE {
+    uint8_t apertDer;
+    uint8_t apertIzq;
+    uint8_t paredFrente;
+    uint8_t callejon;
 };
 
 struct FILTRO_SENSORES {

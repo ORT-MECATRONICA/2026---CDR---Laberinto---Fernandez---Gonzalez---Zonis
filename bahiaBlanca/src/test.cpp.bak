@@ -1,0 +1,38 @@
+#include "main.h"
+#include "config.h"
+#include <Arduino.h>
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/encoders/encoders.h"
+#include "hardware/logger/logger.h"
+#include "hardware/movimiento/puenteH.h"
+
+
+void setup(){
+    inicializacionSensoresDist();
+    inicializarEncoders();
+    inicializarLogger();
+    inicializarMotores();
+}
+
+void loop(){
+    // Leer los sensores de distancia
+    sensado distancias = actualizarSensado();
+
+    // Leer el encoder A
+    int32_t pulsosA = verPulsosEncoderA();
+
+    // Formatear el mensaje 
+    String mensaje = "Dist. Izq: " + String(distancias.distanciaIzq) + 
+                     " mm | Dist. Cent: " + String(distancias.distanciaCent) + 
+                     " mm | Dist. Der: " + String(distancias.distanciaDer) + 
+                     " mm | Encoder A: " + String(pulsosA);
+                     
+    // Imprimir por el puerto Serial convencional
+    Serial.println(mensaje);
+    
+    // Si prefieres usar Bluetooth, puedes descomentar la siguiente linea:
+    // enviarString(mensaje);
+
+    // Pequeño delay para no saturar el puerto serie
+    delay(250);
+}

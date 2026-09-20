@@ -7,14 +7,15 @@
 #include "maquinaEstados/leftHand.h"
 #include "maquinaEstados/rightHand.h"
 #include "maquinaEstados/mapeo.h"
-
-ESTADOS estadoActual = HUB;
+//=================== ATENCIÓN ===================
+ESTADOS estadoActual = RIGHT_HAND; //Para la etapa de la semana del 21, solo simulamos con Right hand porque no hay botones
 
 void setup(){
     inicializacionSensoresDist();
     inicializarEncoders();
     inicializarLogger();
     inicializarMotores();
+    Serial.println("Inicialización correcta");
 }
 
 void loop(){
@@ -32,18 +33,15 @@ void loop(){
             }
             break;
         case RIGHT_HAND: {
-               right_hand();
-               estadoActual = HUB;
+               estadoActual = right_hand();
             break;
         }
         case LEFT_HAND: {
-                left_hand();
-                estadoActual = HUB;
+                estadoActual = left_hand();
             break;
         }
         case MAPEO: {
-                mapeo();
-                estadoActual = HUB;
+                estadoActual = mapeo();
             break;
         }
     }

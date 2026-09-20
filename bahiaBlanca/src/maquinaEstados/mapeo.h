@@ -1,3 +1,3 @@
 #pragma once
-
-bool mapeo();
+#include "main.h"
+ESTADOS mapeo();

@@ -1,3 +1,3 @@
 #pragma once
-
-bool left_hand();
+#include "main.h"
+ESTADOS left_hand();
