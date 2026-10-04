@@ -1,1 +1,10 @@
 #pragma once
+
+enum MAQUINA_ESTADOS {
+    LISTO,
+    AVANZANDO,
+    DECISION,
+    GIRANDO_DER,
+    GIRANDO_IZQ,
+    GIRANDO_180,
+};

@@ -31,3 +31,8 @@ int32_t verPulsosEncoderA() {
 int32_t verPulsosEncoderB() {
     return encoderB.getCount();
 }
+
+void reiniciarEncoders() {
+    encoderA.clearCount();
+    encoderB.clearCount();
+}

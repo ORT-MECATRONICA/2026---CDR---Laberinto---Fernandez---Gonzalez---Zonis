@@ -2,8 +2,6 @@
 #include <Arduino.h>
 #include "hardware/logger/logger.h"
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
-#include "hardware/sensorPiso/sensorPiso.h"
-#include "memoria/funcionesMapeo.h"
 #include "hardware/movimiento/PID.h"
 #include "hardware/movimiento/puenteH.h"
 #include "hardware/encoders/encoders.h"
@@ -14,35 +12,32 @@
 //==============================================================
 
 sensado sensadoActual = {0,0,0};
-ESTADOS estadoActual = SWITCHEAR_ESTADO;
 VELOCIDAD velocidadActual = {0,0};
+
+enum ESTADO_PRUEBA {
+    ESPERANDO_BOTON,
+    AVANZANDO
+};
+
+ESTADO_PRUEBA estado = ESPERANDO_BOTON;
 
 //==============================================================
 //                     VOID SETUP
 //==============================================================
 
-void setup (){
-  pinMode(BOTON, INPUT);
+void setup (){  
   inicializarLogger();
-  inicializacionSensoresDist(); // Se descomentó para iniciar sensores
   inicializarMotores(); 
   inicializarEncoders();
 }
-
 
 //==============================================================
 //                       VOID LOOP
 //==============================================================
 
 void loop(){
-  sensadoActual = actualizarSensado();
-  
-  Serial.print("Izq: ");
-  Serial.print(sensadoActual.distanciaIzq);
-  Serial.print(" | Cent: ");
-  Serial.print(sensadoActual.distanciaCent);
-  Serial.print(" | Der: ");
-  Serial.println(sensadoActual.distanciaDer);
-  
-  delay(100);
+  movimiento(AVANZAR,{100,100});
+  delay(3000);
+  movimiento(GIRAR_IZQ,{100,100});
+  delay(1000);
 }

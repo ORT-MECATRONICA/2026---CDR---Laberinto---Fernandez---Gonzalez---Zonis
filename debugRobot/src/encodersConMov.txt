@@ -1,0 +1,72 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACIÓN DE VARIABLES GLOBALES
+//==============================================================
+
+sensado sensadoActual = {0,0,0};
+VELOCIDAD velocidadActual = {0,0};
+
+enum ESTADO_PRUEBA {
+    ESPERANDO_BOTON,
+    AVANZANDO
+};
+
+ESTADO_PRUEBA estado = ESPERANDO_BOTON;
+
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON1, INPUT);
+  inicializarLogger();
+  inicializarMotores(); 
+  inicializarEncoders();
+  
+  Serial.println("--- PRUEBA DE AVANCE CON ENCODERS ---");
+  Serial.println("Esperando boton para avanzar...");
+  resetearEncoders();
+}
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+  switch (estado) {
+    case ESPERANDO_BOTON: {
+      movimiento(FRENO_F, {0,0});
+      
+      if (digitalRead(BOTON1) == LOW) {
+        while(digitalRead(BOTON1) == LOW) { delay(10); } // Esperar a que se suelte el botón
+        Serial.println(">>> INICIANDO AVANCE <<<");
+        resetearEncoders();
+        estado = AVANZANDO;
+      }
+      break;
+    }
+
+    case AVANZANDO: {
+      // Valor objetivo de pulsos. Ajustar según la distancia deseada (ej. 1000).
+      int32_t pulsosObjetivo = 800; 
+      int32_t pulsosActuales = abs(verPulsosEncoderA()); 
+      
+      if (pulsosActuales < pulsosObjetivo) {
+        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        Serial.println(">>> OBJETIVO ALCANZADO <<<");
+        movimiento(FRENO_F, {0,0});
+        estado = ESPERANDO_BOTON;
+      }
+      break;
+    }
+  }
+}

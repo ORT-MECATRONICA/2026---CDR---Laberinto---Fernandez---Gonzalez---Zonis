@@ -13,7 +13,7 @@ void enviarString(String str){
 }
 
 void inicializarLogger(){
-    SerialBT.begin("Magnesio Aceituna");
+    SerialBT.begin("Manati");
     Serial.begin(115200);
 }
 

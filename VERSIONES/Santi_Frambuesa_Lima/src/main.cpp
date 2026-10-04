@@ -28,7 +28,7 @@ void setup (){
   inicializarLogger();
   inicializacionSensoresDist(); // Se descomentó para iniciar sensores
   inicializarMotores(); 
-  //inicializarEncoders();
+  inicializarEncoders();
   enviarString("INICIO");
 }
 
@@ -44,8 +44,10 @@ void loop(){
     case SWITCHEAR_ESTADO: {
       actualizarSensado();
       if(lecturaBoton == LOW){
-        estadoActual = AVANZANDO;
+        estadoActual = DEBUG_ROBOT;
         resetearErrorAnterior();
+        reiniciarEncoders();
+        delay(500); // Pequeño debounce para no registrar doble toque inmediatamente
         break;
       }
       break;
@@ -178,6 +180,24 @@ void loop(){
       if(millis() - tiempoInicioGiro >= 3000) { 
         resetearErrorAnterior();
         estadoActual = AVANZANDO;
+      }
+      break;
+    }
+
+    //==============================================================
+    case DEBUG_ROBOT: {
+      // Avanzar usando pulsos de encoder. 
+      // 1000 es un valor de ejemplo que se puede ajustar (representa distancia).
+      int32_t pulsosActuales = abs(verPulsosEncoderA()); // o el promedio de A y B
+      int32_t pulsosObjetivo = 2000; // Ajustar empíricamente
+      
+      if (pulsosActuales < pulsosObjetivo) {
+        VELOCIDAD velEncoder = {VEL_BASE_IZQ, VEL_BASE_DER};
+        movimiento(AVANZAR, velEncoder);
+      } else {
+        VELOCIDAD velFreno = {0, 0};
+        movimiento(FRENO_F, velFreno);
+        estadoActual = SWITCHEAR_ESTADO; // Vuelve a esperar al botón
       }
       break;
     }
