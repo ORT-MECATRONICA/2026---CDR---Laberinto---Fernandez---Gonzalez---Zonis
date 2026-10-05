@@ -2,8 +2,6 @@
 #include <Arduino.h>
 #include "hardware/logger/logger.h"
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
-#include "hardware/sensorPiso/sensorPiso.h"
-#include "memoria/funcionesMapeo.h"
 #include "hardware/movimiento/PID.h"
 #include "hardware/movimiento/puenteH.h"
 #include "hardware/encoders/encoders.h"
@@ -22,7 +20,7 @@ VELOCIDAD velocidadActual = {0,0};
 //==============================================================
 
 void setup (){
-  pinMode(BOTON, INPUT);
+  pinMode(BOTON1, INPUT);
   inicializarLogger();
   inicializacionSensoresDist(); 
   inicializarMotores(); 
@@ -52,8 +50,8 @@ void loop(){
   delay(200); 
   
   // Si aprietas el botón, se resetean a 0 para que puedas medir desde un punto específico
-  if (digitalRead(BOTON) == LOW) {
-      while(digitalRead(BOTON) == LOW) { delay(10); } // Esperar a soltar
+  if (digitalRead(BOTON1) == LOW) {
+      while(digitalRead(BOTON1) == LOW) { delay(10); } // Esperar a soltar
       Serial.println(">>> ENCODERS RESETEADOS A 0 <<<");
       resetearEncoders();
   }

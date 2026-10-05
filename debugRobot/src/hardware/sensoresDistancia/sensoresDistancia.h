@@ -12,9 +12,9 @@
 //Struct para la medición de sensado
  
 struct sensado {
-    uint16_t distanciaCent;
-    uint16_t distanciaDer;
-    uint16_t distanciaIzq;
+    int16_t distanciaCent;
+    int16_t distanciaDer;
+    int16_t distanciaIzq;
 };
 
 //Funciones para iniciar los sensores y medir la distancia.

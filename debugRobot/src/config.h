@@ -64,8 +64,9 @@
 #define CNY 13
 
 #define PULSOS_CELDA 800
-#define PULSOS_GIRO_90 160
-#define PULSOS_GIRO_180 320
+#define PULSOS_GIRO_90_DER 300
+#define PULSOS_GIRO_90_IZQ 280
+#define PULSOS_GIRO_180 300
 
 //===================
 // CONSTANTES DE TIEMPO (ms)

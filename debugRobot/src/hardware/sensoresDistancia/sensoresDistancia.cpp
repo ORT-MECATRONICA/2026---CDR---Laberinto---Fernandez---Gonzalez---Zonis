@@ -89,17 +89,17 @@ sensado actualizarSensado(){
     if((sensorIzq.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
       uint16_t rawIzq = sensorIzq.readRangeContinuousMillimeters();
       if (rawIzq > 2000) rawIzq = 2000;
-      lecturaAct.distanciaIzq = (rawIzq > OFSET_IZQ) ? (rawIzq - OFSET_IZQ) : 0;
+      lecturaAct.distanciaIzq = rawIzq - OFSET_IZQ;
     }
     if((sensorCent.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
       uint16_t rawCent = sensorCent.readRangeContinuousMillimeters();
       if (rawCent > 2000) rawCent = 2000;
-      lecturaAct.distanciaCent = (rawCent > OFSET_CENT) ? (rawCent - OFSET_CENT) : 0;
+      lecturaAct.distanciaCent =  rawCent - OFSET_CENT;
     }
     if((sensorDer.readReg(VL53L0X::RESULT_INTERRUPT_STATUS) & 0x07) != 0){
       uint16_t rawDer = sensorDer.readRangeContinuousMillimeters();
       if (rawDer > 2000) rawDer = 2000;
-      lecturaAct.distanciaDer = (rawDer > OFSET_DER) ? (rawDer - OFSET_DER) : 0;
+      lecturaAct.distanciaDer =  rawDer - OFSET_DER;
     }
     ultimoSensado = millis();
   //}

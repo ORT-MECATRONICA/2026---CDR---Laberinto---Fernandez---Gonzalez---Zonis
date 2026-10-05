@@ -16,7 +16,7 @@ VELOCIDAD velocidadActual = {0,0};
 
 enum ESTADO_PRUEBA {
     ESPERANDO_BOTON,
-    AVANZANDO
+    AVANCE,
 };
 
 ESTADO_PRUEBA estado = ESPERANDO_BOTON;
@@ -49,22 +49,20 @@ void loop(){
         while(digitalRead(BOTON1) == LOW) { delay(10); } // Esperar a que se suelte el botón
         Serial.println(">>> INICIANDO AVANCE <<<");
         resetearEncoders();
-        estado = AVANZANDO;
+        estado = AVANCE;
       }
       break;
     }
 
-    case AVANZANDO: {
+    case AVANCE: {
       // Valor objetivo de pulsos. Ajustar según la distancia deseada (ej. 1000).
-      int32_t pulsosObjetivo = 800; 
-      int32_t pulsosActuales = abs(verPulsosEncoderA()); 
+      int32_t pulsosObjetivo = 280; 
+      int32_t pulsosActuales = abs(verPulsosEncoderB()); 
       
       if (pulsosActuales < pulsosObjetivo) {
-        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+        movimiento(GIRAR_IZQ, {VEL_BASE_IZQ, VEL_BASE_DER});
       } else {
-        Serial.println(">>> OBJETIVO ALCANZADO <<<");
-        movimiento(FRENO_F, {0,0});
-        estado = ESPERANDO_BOTON;
+        movimiento(AVANZAR, {40,40});
       }
       break;
     }

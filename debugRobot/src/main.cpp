@@ -44,16 +44,23 @@ void loop(){
         while(digitalRead(BOTON1) == LOW) { delay(10); } // Esperar a que se suelte el botón
         enviarString(">>> INICIANDO AVANCE <<<");
         resetearEncoders();
+        resetearErrorAnterior();
         estado = AVANZANDO;
       }
       break;
     }
 
     case AVANZANDO: {
-      pulsosActuales = abs(verPulsosEncoderA()); 
+      pulsosActuales = (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
       
       if (pulsosActuales < PULSOS_CELDA) {
-        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+       /* sensadoActual = actualizarSensado();
+        int16_t correccion = calcularCorreccion(sensadoActual);
+        velocidadActual.izquierda = constrain(VEL_BASE_IZQ + correccion, 0, 255);
+        velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
+        movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
+        */
+       movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
       } else {
         enviarString(">>> INGRESO A DECISIÓN <<<");
         movimiento(FRENO_F, {0,0});
@@ -63,50 +70,60 @@ void loop(){
     }
 
     case DECISION: {
-      //ESTO CAMBIA PARA LA PRIORIDAD
       sensadoActual = actualizarSensado();
-      if (sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL) {
-        enviarString(">>> GIRANDO 180 <<<");
-        resetearEncoders();
-        estado = GIRANDO_180;
-      } else if (sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL&& sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL) {
+      
+      //ORDEN Y PROGRESO!!! 
+      bool condicionGiroDer = sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL; // TODO LO DEMÁS NO ME IMPORTA, HAGAN LO QUE HAGAN LOS OTROS SENSORES, GIRO!
+      bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent > UMBRAL_PARED_ESTADO_NORMAL;
+      bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL;
+      bool condicionGiro180 = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
+
+      if (condicionGiroDer) {
+        enviarString(">>> GIRANDO DERECHA <<<");
         resetearEncoders();
         estado = GIRANDO_DER;
-      } else if (sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL) {
+      } else if (condicionAvanzar) {
+        resetearEncoders();
+        resetearErrorAnterior();
+        estado = AVANZANDO;
+        enviarString (">>> AVANZANDO <<<");
+      } else if (condicionGiroIzq) {
         enviarString(">>> GIRANDO IZQUIERDA <<<");
         resetearEncoders();
         estado = GIRANDO_IZQ;
-      } else {
-        enviarString(">>> AVANZANDO <<<");
+      } else if (condicionGiro180) {
+        enviarString(">>> GIRANDO 180 <<<");
         resetearEncoders();
-        estado = AVANZANDO;
+        estado = GIRANDO_180;
       }
       break;
     }
 
     case GIRANDO_DER: {
-      pulsosActuales = abs(verPulsosEncoderA()); 
+      pulsosActuales = (abs(verPulsosEncoderA())) / 2;
       
-      if (pulsosActuales < PULSOS_GIRO_90) {
+      if (pulsosActuales < PULSOS_GIRO_90_DER) {
         movimiento(GIRAR_DER, {VEL_BASE_IZQ, VEL_BASE_DER});
       } else {
         enviarString(">>> GIRANDO DER <<<");
         movimiento(FRENO_F, {0,0});
         estado = AVANZANDO;
+        resetearErrorAnterior();
         resetearEncoders();
       }
       break;
     }
 
     case GIRANDO_IZQ: {
-      pulsosActuales = abs(verPulsosEncoderA()); 
+      pulsosActuales = abs(verPulsosEncoderB()); 
       
-      if (pulsosActuales < PULSOS_GIRO_90) {
+      if (pulsosActuales < PULSOS_GIRO_90_IZQ) {
         movimiento(GIRAR_IZQ, {VEL_BASE_IZQ, VEL_BASE_DER});
       } else {
         enviarString(">>> GIRANDO IZQUIERDA <<<");
         movimiento(FRENO_F, {0,0});
         estado = AVANZANDO;
+        resetearErrorAnterior();
         resetearEncoders();
       }
       break;
@@ -121,6 +138,7 @@ void loop(){
         enviarString(">>> GIRANDO 180 <<<");
         movimiento(FRENO_F, {0,0});
         estado = AVANZANDO;
+        resetearErrorAnterior();
         resetearEncoders();
       }
       break;
