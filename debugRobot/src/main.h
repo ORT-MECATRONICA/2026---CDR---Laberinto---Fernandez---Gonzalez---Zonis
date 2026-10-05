@@ -1,9 +1,21 @@
 #pragma once
-
+/*
 enum MAQUINA_ESTADOS {
     LISTO,
     AVANZANDO,
     DECISION,
+    GIRANDO_DER,
+    GIRANDO_IZQ,
+    GIRANDO_180,
+}; */
+
+enum MAQUINA_NUEVA {
+    LISTO,
+    AVANZANDO,
+    DECISION,
+    PREGIRO_DER,
+    PREGIRO_IZQ,
+    POSTGIRO,
     GIRANDO_DER,
     GIRANDO_IZQ,
     GIRANDO_180,

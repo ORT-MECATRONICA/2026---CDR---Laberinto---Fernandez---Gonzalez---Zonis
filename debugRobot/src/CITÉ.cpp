@@ -1,4 +1,3 @@
-#pragma message("NHH")
 #include "main.h"
 #include <Arduino.h>
 #include "hardware/logger/logger.h"
@@ -14,7 +13,7 @@
 
 sensado sensadoActual = {0,0,0};
 VELOCIDAD velocidadActual = {0,0};
-MAQUINA_NUEVA estado = LISTO;
+MAQUINA_ESTADOS estado = LISTO;
 uint32_t pulsosActuales = 0;
 
 //==============================================================
@@ -53,21 +52,36 @@ void loop(){
 
     case AVANZANDO: {
       pulsosActuales = (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
+      
+      if (pulsosActuales < PULSOS_CELDA) {
+       /* sensadoActual = actualizarSensado();
+        int16_t correccion = calcularCorreccion(sensadoActual);
+        velocidadActual.izquierda = constrain(VEL_BASE_IZQ + correccion, 0, 255);
+        velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
+        movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
+        */
+       movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> INGRESO A DECISIÓN <<<");
+        movimiento(FRENO_F, {0,0});
+        estado = DECISION;
+      }
+      break;
+    }
+
+    case DECISION: {
       sensadoActual = actualizarSensado();
-      int16_t correccion = calcularCorreccion(sensadoActual);
-      velocidadActual.izquierda = constrain(VEL_BASE_IZQ + correccion, 0, 255);
-      velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
-      movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
-      sensadoActual = actualizarSensado();
+      
       //ORDEN Y PROGRESO!!! 
       bool condicionGiroDer = sensadoActual.distanciaDer > UMBRAL_PARED_ESTADO_NORMAL; // TODO LO DEMÁS NO ME IMPORTA, HAGAN LO QUE HAGAN LOS OTROS SENSORES, GIRO!
       bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent > UMBRAL_PARED_ESTADO_NORMAL;
       bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq > UMBRAL_PARED_ESTADO_NORMAL;
       bool condicionGiro180 = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
+
       if (condicionGiroDer) {
         enviarString(">>> GIRANDO DERECHA <<<");
         resetearEncoders();
-        estado = PREGIRO_DER;
+        estado = GIRANDO_DER;
       } else if (condicionAvanzar) {
         resetearEncoders();
         resetearErrorAnterior();
@@ -76,45 +90,14 @@ void loop(){
       } else if (condicionGiroIzq) {
         enviarString(">>> GIRANDO IZQUIERDA <<<");
         resetearEncoders();
-        estado = PREGIRO_IZQ;
+        estado = GIRANDO_IZQ;
       } else if (condicionGiro180) {
         enviarString(">>> GIRANDO 180 <<<");
         resetearEncoders();
         estado = GIRANDO_180;
       }
-     
-    }
-
-    case  PREGIRO_DER : {
-      pulsosActuales = (abs(verPulsosEncoderA())) / 2;
-      
-      if (pulsosActuales < PULSOS_PREGIRO_90_DER) {
-        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
-      } else {
-        enviarString(">>> PREGIRO DERECHA <<<");
-        movimiento(FRENO_F, {0,0});
-        estado = GIRANDO_DER;
-        resetearErrorAnterior();
-        resetearEncoders();
-      }
       break;
     }
-
-    case PREGIRO_IZQ : {
-      pulsosActuales = abs(verPulsosEncoderB()); 
-      
-      if (pulsosActuales < PULSOS_PREGIRO_90_IZQ) {
-        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
-      } else {
-        enviarString(">>> PREGIRO IZQUIERDA <<<");
-        movimiento(FRENO_F, {0,0});
-        estado = GIRANDO_IZQ;
-        resetearErrorAnterior();
-        resetearEncoders();
-      }
-      break;
-    }
-
 
     case GIRANDO_DER: {
       pulsosActuales = (abs(verPulsosEncoderA())) / 2;
