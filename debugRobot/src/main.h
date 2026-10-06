@@ -1,14 +1,16 @@
 #pragma once
-/*
+
 enum MAQUINA_ESTADOS {
     LISTO,
+    INFORMACION_RECIBIDA,
     AVANZANDO,
     DECISION,
     GIRANDO_DER,
     GIRANDO_IZQ,
     GIRANDO_180,
-}; */
-
+    FRENANDO
+};
+/*
 enum MAQUINA_NUEVA {
     LISTO,
     AVANZANDO,
@@ -19,4 +21,4 @@ enum MAQUINA_NUEVA {
     GIRANDO_DER,
     GIRANDO_IZQ,
     GIRANDO_180,
-};
+}; */
