@@ -4,9 +4,7 @@
 
 BluetoothSerial SerialBT;
 
-void enviarCelda(uint8_t celda){
-    SerialBT.write(celda);
-}
+
 
 void enviarString(String str){
     SerialBT.println(str);

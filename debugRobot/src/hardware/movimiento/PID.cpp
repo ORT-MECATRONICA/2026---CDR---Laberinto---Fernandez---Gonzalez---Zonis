@@ -6,8 +6,8 @@ static int16_t errorAnterior = 0;
 
 int16_t calcularCorreccion(sensado mediciones){
     // Evaluamos si las paredes est�n presentes (menor al umbral normal + un margen)
-    bool hayIzq = mediciones.distanciaIzq < (UMBRAL_PARED_ESTADO_NORMAL + 50);
-    bool hayDer = mediciones.distanciaDer < (UMBRAL_PARED_ESTADO_NORMAL + 50);
+    bool hayIzq = mediciones.distanciaIzq < (UMBRAL_PARED_ESTADO_NORMAL);
+    bool hayDer = mediciones.distanciaDer < (UMBRAL_PARED_ESTADO_NORMAL);
     
     int16_t error = 0;
     

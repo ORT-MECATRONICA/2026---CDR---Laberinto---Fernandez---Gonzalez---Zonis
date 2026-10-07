@@ -42,7 +42,6 @@ Wire.setClock(10000); // Recomendable combinar con la reducción de velocidad/
   sensorDer.setTimeout(500);
   if (!sensorDer.init()) {
     Serial.printf("ERROR: fallo init sensor en pin %d\n", xshutPinDer);
-    while (true) delay(1000);
   }
 
   sensorDer.setAddress(adressDer);
@@ -56,7 +55,6 @@ Wire.setClock(10000); // Recomendable combinar con la reducción de velocidad/
   sensorCent.setTimeout(500);
   if (!sensorCent.init()) {
     Serial.printf("ERROR: fallo init sensor en pin %d\n", xshutPinCent);
-    while (true) delay(1000);
   }
 
   sensorCent.setAddress(adressCent);
@@ -70,7 +68,6 @@ Wire.setClock(10000); // Recomendable combinar con la reducción de velocidad/
   sensorIzq.setTimeout(500);
   if (!sensorIzq.init()) {
     Serial.printf("ERROR: fallo init sensor en pin %d\n", xshutPinIzq);
-    while (true) delay(1000);
   }
 
   sensorIzq.setAddress(adressIzq);

@@ -12,19 +12,21 @@
 
 #define KP 0.5
 #define KI 0
-#define KD 0.3
+#define KD 0 //SI LE AGREGO ALGO NO VA A FUNCIONAR!!    
 
 #define VEL_BASE_DER 45
 #define VEL_BASE_IZQ 45
-
-#define VEL_GIRO_DER 100
-#define VEL_GIRO_IZQ 100
 
 #define UMBRAL_LECTURA 100
 
 #define OFSET_DER 47
 #define OFSET_IZQ 40
 #define OFSET_CENT 50
+
+#define PULSOS_GIRO_180 700
+//#define PULSOS_GIRO_90_DER 280
+//#define PULSOS_GIRO_90_IZQ 290
+#define PULSOS_POSTGIRO 200
 
 
 //Es el tiempo de delay del Freno F. Es BLOQUEANTE
@@ -33,8 +35,6 @@
 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
 #define UMBRAL_PARED_ESTADO_NORMAL 130 
 
-//Es el umbral (MM) para que el robot gire si la pared está frente a él
-#define UMBRAL_PARED_FRENTE 120
 //===================
 //     PINES
 //===================
