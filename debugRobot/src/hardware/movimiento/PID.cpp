@@ -3,6 +3,8 @@
 #include "config.h"
 
 static int16_t errorAnterior = 0;
+static int32_t tiempoAnterior = millis();
+static int16_t correccionAnterior = 0;
 
 int16_t calcularCorreccion(sensado mediciones){
     // Evaluamos si las paredes est�n presentes (menor al umbral normal + un margen)
@@ -24,20 +26,18 @@ int16_t calcularCorreccion(sensado mediciones){
         // Ninguna pared presente: avanzar recto
         error = 0;
     }
-
-    int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
+    int32_t tiempoActual = millis();
+    if (tiempoActual - tiempoAnterior > 50) {
+        int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
+        errorAnterior = error; 
+        tiempoAnterior = tiempoActual;
+        return constrain(correccion, -25,25); //CUIDADO CON ESTE
+    } else {
+        return correccionAnterior;
+    }
     
-    errorAnterior = error; 
     
-    return constrain(correccion, -25,25); //CUIDADO CON ESTE
-}
-
-int16_t calcularCorreccionRightHand(int16_t error){
-    int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
     
-    errorAnterior = error; 
-    
-    return constrain(correccion, -50, 50);
 }
 
 void resetearErrorAnterior() {

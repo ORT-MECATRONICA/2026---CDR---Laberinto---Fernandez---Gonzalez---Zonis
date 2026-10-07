@@ -35,3 +35,30 @@ Bajo ningún concepto se debe implementar lógica de mapeo (matrices, rastreo de
 - [ ] R3: Tras el reseteo de encoders al salir de un giro, el PID respeta el silencio de 100 pulsos.
 - [ ] R4: La máquina de estados original sigue intacta en su arquitectura general, usando el estado `FRENANDO` introducido recientemente para estabilizar el robot.
 - [ ] Un agente independiente revisó el código en busca de realimentaciones positivas ocultas o variables no inicializadas.
+
+## 2026-10-07T15:12:25Z
+
+# Teamwork Project Prompt
+
+Review the entire `debugRobot` codebase to identify and document all potential bugs (logic errors, crashes, edge cases, and vulnerabilities). Do not modify any existing source code.
+
+Working directory: c:\Users\devandroid\Documents\GitHub\Laberinto\debugRobot
+Integrity mode: demo
+
+## Requirements
+
+### R1. Comprehensive Code Audit
+Review all source files in the provided working directory. Identify logic errors, runtime crashes, unhandled edge cases, and security vulnerabilities. 
+
+### R2. Read-Only Codebase
+Absolutely no modifications may be made to the existing source files. 
+
+### R3. Audit Methods
+The team may execute static analysis tools or linters present in the environment, and consult external documentation to validate best practices.
+
+## Acceptance Criteria
+
+### Deliverable Format
+- [ ] A detailed report is generated and saved as `audit_report.md` in the working directory.
+- [ ] The report categorizes all found issues by severity (e.g., Critical, High, Medium, Low).
+- [ ] Every documented bug includes the exact file path, line number, and a brief explanation of the issue.

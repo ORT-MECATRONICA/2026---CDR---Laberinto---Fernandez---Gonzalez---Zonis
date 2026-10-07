@@ -66,8 +66,7 @@ void loop(){
     case AVANZANDO: {
       pulsosActuales = (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
       sensadoActual = actualizarSensado();
-      //int16_t correccion = calcularCorreccion(sensadoActual);
-      int16_t correccion = 0;
+      int16_t correccion = calcularCorreccion(sensadoActual);
       velocidadActual.izquierda = constrain(VEL_BASE_IZQ + correccion, 0, 255);
       velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
       movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
@@ -84,7 +83,7 @@ void loop(){
         //No necesita resetear encoders!!
         estado = AVANZANDO;
       } else if (condicionGiroIzq) {
-        enviarString(">>> GIRANDO IZQUIERDA <<<");
+      enviarString(">>> GIRANDO IZQUIERDA <<<") ;
         resetearEncoders();
         estado = PREGIRO_IZQ;
       } else if (condicionGiro180) {
