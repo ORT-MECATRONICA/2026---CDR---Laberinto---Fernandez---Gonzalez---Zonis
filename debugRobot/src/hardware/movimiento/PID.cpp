@@ -14,7 +14,6 @@ int16_t calcularCorreccion(sensado mediciones){
     
     int16_t error = 0;
     
-    // Tu lógica original (¡que era correcta!)
     if (hayIzq && hayDer) {
         error = (int16_t)mediciones.distanciaDer - (int16_t)mediciones.distanciaIzq;
     } else if (hayIzq) {
@@ -25,16 +24,16 @@ int16_t calcularCorreccion(sensado mediciones){
         error = 0;
     }
     
-    uint32_t tiempoActual = millis();
-    uint32_t dt = tiempoActual - tiempoAnterior;
+    //dt es DELTA TIEMPO
+    uint32_t dt = millis() - tiempoAnterior;
     
     if (dt >= 20) { // Usar dt en lugar de un valor estricto
         
         // --- Solución al Derivative Kick y Tiempo Estancado (Stale Time) ---
         if (primerCiclo) {
-            errorAnterior = error; // Igualamos para que la derivada sea 0
-            dt = 20;               // Forzamos dt normal para no disparar la integral con el tiempo pausado durante el giro
-            primerCiclo = false;
+            errorAnterior = error; 
+            dt = 20;        
+            primerCiclo = false; // Forzamos dt normal para no disparar la integral con el tiempo pausado du
         }
 
         // 1. Término Proporcional
@@ -52,7 +51,7 @@ int16_t calcularCorreccion(sensado mediciones){
         
         // Actualizamos variables estáticas
         errorAnterior = error; 
-        tiempoAnterior = tiempoActual;
+        tiempoAnterior = millis();
         correccionAnterior = correccion;
         
         return constrain(correccion, -25, 25);

@@ -1,10 +1,8 @@
 //==============================================================
-//                BACHIN
+//                          PRIMAVERA
 // VERSIÓN DEL CÓDIGO SIN PID, ÚNICAMENTE CON CALIBRACIÓN DE PULSOS PARA GIROS
-// SE LLAMA BACHIN EN HOMENAJE A "CHIQUILLIN DE BACHIN", DE PIAZOLLA.
-//
+// SE LLAMA BACHIN EN HOMENAJE A "PRIMAVERA PORTEÑA", DE PIAZOLLA.
 //==============================================================
-
 
 #include "main.h"
 #include <Arduino.h>
@@ -25,7 +23,7 @@ MAQUINA_NUEVA estado = LISTO;
 MOVIMIENTOS movimientoAnterior = AVANZAR;
 uint32_t pulsosActuales = 0;
 //uint32_t tiempoInicioGiro = 0;
-uint16_t PULSOS_GIRO_90_DER = 350;
+uint16_t PULSOS_GIRO_90_DER = 320;
 uint16_t PULSOS_GIRO_90_IZQ = 350;
 //==============================================================
 //                     VOID SETUP
@@ -71,40 +69,16 @@ void loop(){
 
 
     case AVANZANDO: {
-      //lineas 77 a 100 modificadas por IA
       pulsosActuales = (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
       sensadoActual = actualizarSensado();
-      int16_t correccion = 0;
-      
-      bool hayParedDer = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaDer > DISTANCIA_MIN_VALIDA;
-      bool hayParedIzq = sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq > DISTANCIA_MIN_VALIDA;
-
-      // 1. CENTRADO SUAVE (Solo actúa si ambas paredes están presentes)
-      if (hayParedDer && hayParedIzq) {
-          // Diferencia entre paredes, atenuada (dividido 4) para no oscilar.
-          correccion = (sensadoActual.distanciaDer - sensadoActual.distanciaIzq) / 4; 
-          correccion = constrain(correccion, -8, 8); // Tope para evitar volantazos
-      } else {
-          // En huecos o intersecciones, el volante va derecho, cero corrección.
-          correccion = 0;
-      }
-
-      // 2. SALVAVIDAS ANTI-CHOQUE MUY CERCANO
-      int DISTANCIA_CRITICA = 25; 
-      if (sensadoActual.distanciaDer < DISTANCIA_CRITICA && sensadoActual.distanciaDer > DISTANCIA_MIN_VALIDA) {
-          correccion = -10; // Toque suave a la izquierda
-      } else if (sensadoActual.distanciaIzq < DISTANCIA_CRITICA && sensadoActual.distanciaIzq > DISTANCIA_MIN_VALIDA) {
-          correccion = 10;  // Toque suave a la derecha
-      }
-
+            
+      int16_t correccion = calcularCorreccion(sensadoActual);
       velocidadActual.izquierda = constrain(VEL_BASE_IZQ + correccion, 0, 255);
       velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
-     
-     movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
-      
+      movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
      
      
-     //ORDEN Y PROGRESO!!! 
+      //ORDEN Y PROGRESO!!! 
       bool condicionGiroDer = sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL; // TODO LO DEMÁS NO ME IMPORTA, HAGAN LO QUE HAGAN LOS OTROS SENSORES, GIRO!
       bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_PARED_ESTADO_NORMAL;
       bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
