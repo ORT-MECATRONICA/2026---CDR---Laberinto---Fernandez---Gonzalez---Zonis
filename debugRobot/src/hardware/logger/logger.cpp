@@ -58,7 +58,7 @@ void procesarTramaBT(uint16_t &pulsosDer, uint16_t &pulsosIzq) {
     }
 
     if (actualizado) {
-        enviarString(">>> PULSOS ACTUALIZADOS <<<");
-        enviarString("DER: " + String(pulsosDer) + " | IZQ: " + String(pulsosIzq));
+        enviarString(">>> PID actualizado <<<");
+        enviarString("KP: " + String(pulsosDer) + " | KI: " + String(pulsosIzq));
     }
 }

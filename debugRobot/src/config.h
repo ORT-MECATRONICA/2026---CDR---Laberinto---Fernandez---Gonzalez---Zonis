@@ -12,7 +12,7 @@
 
 #define KP 0.5
 #define KI 0
-#define KD 0 //SI LE AGREGO ALGO NO VA A FUNCIONAR!!    
+#define KD 0.3 //SI LE AGREGO ALGO NO VA A FUNCIONAR!!    
 
 #define VEL_BASE_DER 45
 #define VEL_BASE_IZQ 45
@@ -29,11 +29,9 @@
 #define PULSOS_POSTGIRO 200
 
 
-//Es el tiempo de delay del Freno F. Es BLOQUEANTE
-#define DELAY_TIEMPO_FRENADO_EN_F 750
 
 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
-#define UMBRAL_PARED_ESTADO_NORMAL 130 
+#define UMBRAL_PARED_ESTADO_NORMAL 135 
 
 //===================
 //     PINES
