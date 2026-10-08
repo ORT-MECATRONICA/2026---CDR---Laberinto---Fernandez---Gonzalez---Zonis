@@ -101,7 +101,10 @@ void loop(){
       velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
      
      movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
-      //ORDEN Y PROGRESO!!! 
+      
+     
+     
+     //ORDEN Y PROGRESO!!! 
       bool condicionGiroDer = sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL; // TODO LO DEMÁS NO ME IMPORTA, HAGAN LO QUE HAGAN LOS OTROS SENSORES, GIRO!
       bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_PARED_ESTADO_NORMAL;
       bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
