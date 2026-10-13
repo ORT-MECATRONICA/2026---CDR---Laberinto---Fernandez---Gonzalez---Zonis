@@ -80,9 +80,9 @@ void loop(){
      
       //ORDEN Y PROGRESO!!! 
       bool condicionGiroDer = sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL; // TODO LO DEMÁS NO ME IMPORTA, HAGAN LO QUE HAGAN LOS OTROS SENSORES, GIRO!
-      bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_PARED_ESTADO_NORMAL;
-      bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
-      bool condicionGiro180 = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
+      bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_FRENTE;
+      bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_FRENTE && sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
+      bool condicionGiro180 = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_FRENTE && sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
       if (condicionGiroDer) {
         enviarString(">>> GIRANDO DERECHA <<<");
         resetearEncoders();

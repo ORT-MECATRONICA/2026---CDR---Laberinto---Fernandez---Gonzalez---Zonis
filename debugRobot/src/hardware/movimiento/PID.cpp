@@ -2,6 +2,7 @@
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
 #include "config.h"
 
+/*
 static int16_t errorAnterior = 0;
 static uint32_t tiempoAnterior = 0;
 static int16_t correccionAnterior = 0;
@@ -59,9 +60,22 @@ int16_t calcularCorreccion(sensado mediciones){
         return correccionAnterior;
     }
 }
+*/
+static int16_t errorAnterior = 0;
+int16_t calcularCorreccion(sensado mediciones){   
+    bool hayIzq = mediciones.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
+    bool hayDer = mediciones.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL;
+    if (hayIzq && hayDer) {
+    int16_t error = (int16_t)mediciones.distanciaIzq - (int16_t)mediciones.distanciaDer;
+    int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
+    errorAnterior = error; 
+    return correccion;
+    } else {
+        return 0;
+    }
+    return 0;
+}  
 
 void resetearErrorAnterior() {
     errorAnterior = 0;
-    errorIntegral = 0;  // MUY IMPORTANTE: Limpiar la integral al girar
-    primerCiclo = true; // Reiniciar bandera tras un giro para evitar el Kick
 }

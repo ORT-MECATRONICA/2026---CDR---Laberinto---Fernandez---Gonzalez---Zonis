@@ -32,6 +32,7 @@
 
 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
 #define UMBRAL_PARED_ESTADO_NORMAL 135 
+#define UMBRAL_FRENTE 100
 
 //===================
 //     PINES
