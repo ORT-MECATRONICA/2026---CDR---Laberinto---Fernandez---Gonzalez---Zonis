@@ -2,74 +2,20 @@
 #include "hardware/sensoresDistancia/sensoresDistancia.h"
 #include "config.h"
 
-/*
+
 static int16_t errorAnterior = 0;
 static uint32_t tiempoAnterior = 0;
-static int16_t correccionAnterior = 0;
-static float errorIntegral = 0; // Se agrega para la constante KI
-static bool primerCiclo = true; // Bandera para evitar el Derivative Kick
-
-int16_t calcularCorreccion(sensado mediciones){
-    bool hayIzq = mediciones.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
-    bool hayDer = mediciones.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL;
-    
-    int16_t error = 0;
-    
-    if (hayIzq && hayDer) {
-        error = (int16_t)mediciones.distanciaDer - (int16_t)mediciones.distanciaIzq;
-    } else if (hayIzq) {
-        error = - (int16_t)mediciones.distanciaIzq;
-    } else if (hayDer) {
-        error = (int16_t)mediciones.distanciaDer;
-    } else {
-        error = 0;
-    }
-    
-    //dt es DELTA TIEMPO
-    uint32_t dt = millis() - tiempoAnterior;
-    
-    if (dt >= 20) { // Usar dt en lugar de un valor estricto
-        
-        // --- Solución al Derivative Kick y Tiempo Estancado (Stale Time) ---
-        if (primerCiclo) {
-            errorAnterior = error; 
-            dt = 20;        
-            primerCiclo = false; // Forzamos dt normal para no disparar la integral con el tiempo pausado du
-        }
-
-        // 1. Término Proporcional
-        float P = KP * error;
-        // 2. Término Integral (Suma el error en el tiempo)
-        // Convertimos dt a segundos (dt / 1000.0)
-        errorIntegral += error * (dt / 1000.0);
-        // Anti-Windup: Limitamos la memoria integral para que no sature motores al doblar
-        errorIntegral = constrain(errorIntegral, -50, 50); 
-        float I = KI * errorIntegral;
-        // 3. Término Derivativo (Velocidad a la que cambia el error)
-        float D = KD * ((error - errorAnterior) / (dt / 1000.0));
-        // 4. Suma total
-        int16_t correccion = (int16_t)(P + I + D);
-        
-        // Actualizamos variables estáticas
-        errorAnterior = error; 
-        tiempoAnterior = millis();
-        correccionAnterior = correccion;
-        
-        return constrain(correccion, -25, 25);
-    } else {
-        return correccionAnterior;
-    }
-}
-*/
-static int16_t errorAnterior = 0;
 int16_t calcularCorreccion(sensado mediciones){   
     bool hayIzq = mediciones.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
     bool hayDer = mediciones.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL;
     if (hayIzq && hayDer) {
-    int16_t error = (int16_t)mediciones.distanciaIzq - (int16_t)mediciones.distanciaDer;
-    int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
-    errorAnterior = error; 
-    return correccion;
+        int16_t error = (int16_t)mediciones.distanciaIzq - (int16_t)mediciones.distanciaDer;
+        int16_t correccion = (KP * error) + (KD * (error - errorAnterior)) ;
+        if(millis() - tiempoAnterior >= 30){
+            errorAnterior = error;
+            tiempoAnterior = millis();
+        } 
+        return constrain(correccion, -10, 10);
     } else {
         return 0;
     }

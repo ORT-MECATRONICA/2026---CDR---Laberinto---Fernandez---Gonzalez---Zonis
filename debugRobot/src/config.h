@@ -31,7 +31,7 @@
 
 
 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
-#define UMBRAL_PARED_ESTADO_NORMAL 135 
+#define UMBRAL_PARED_ESTADO_NORMAL 170 
 #define UMBRAL_FRENTE 100
 
 //===================
@@ -70,7 +70,7 @@
 #define PULSOS_MIN_DETECCION_FLANCO 150
 #define PULSOS_WATCHDOG_SEGURIDAD 1050
 #define PULSOS_PREGIRO_90_DER 300
-#define PULSOS_PREGIRO_90_IZQ 280
+#define PULSOS_PREGIRO_90_IZQ 10 
 
 
 //===================

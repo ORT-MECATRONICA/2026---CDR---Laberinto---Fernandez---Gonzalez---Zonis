@@ -23,8 +23,8 @@ MAQUINA_NUEVA estado = LISTO;
 MOVIMIENTOS movimientoAnterior = AVANZAR;
 uint32_t pulsosActuales = 0;
 //uint32_t tiempoInicioGiro = 0;
-uint16_t PULSOS_GIRO_90_DER = 320;
-uint16_t PULSOS_GIRO_90_IZQ = 350;
+uint16_t PULSOS_GIRO_90_DER = 350;
+uint16_t PULSOS_GIRO_90_IZQ = 370;
 //==============================================================
 //                     VOID SETUP
 //==============================================================
@@ -176,12 +176,12 @@ void loop(){
 
     case POSTGIRO: {
       pulsosActuales = (abs(verPulsosEncoderB())+abs(verPulsosEncoderA()))/2; 
-      
+      sensadoActual = actualizarSensado(); //ACÁ ACTUALIZO LAS MEDICIONES PARA QUE EL PID FUNCIONE UNA VEZ QUE SALGA DE POSTIGRO
       if (pulsosActuales < PULSOS_POSTGIRO) {
         movimiento(AVANZAR  , {VEL_BASE_IZQ, VEL_BASE_DER});
       } else {
         enviarString(">>> FIN POSTGIRO <<<");
-        movimiento(FRENO_F, {0,0});
+        //movimiento(FRENO_F, {0,0});
         estado = AVANZANDO;
         resetearErrorAnterior();
         resetearEncoders();
@@ -192,13 +192,13 @@ void loop(){
 
     case GIRANDO_180: {
       pulsosActuales = abs(verPulsosEncoderA()); 
-      
+      sensadoActual = actualizarSensado(); 
       if (pulsosActuales < PULSOS_GIRO_180) {
         movimiento(GIRAR_DER, {VEL_BASE_IZQ, VEL_BASE_DER});
       } else {
         enviarString(">>> GIRANDO 180 <<<");
-        movimiento(FRENO_F, {0,0});
-        estado = AVANZANDO;
+        //  movimiento(FRENO_F, {0,0});
+        estado = POSTGIRO;
         resetearErrorAnterior();
         resetearEncoders();
       }
