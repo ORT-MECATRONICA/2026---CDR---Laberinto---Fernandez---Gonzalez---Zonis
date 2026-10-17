@@ -20,7 +20,7 @@ Wire.begin(SDA, SCL);
 gpio_set_pull_mode((gpio_num_t)SDA, GPIO_PULLUP_ONLY);
 gpio_set_pull_mode((gpio_num_t)SCL, GPIO_PULLUP_ONLY);
 
-Wire.setClock(10000); // Recomendable combinar con la reducción de velocidad/
+Wire.setClock(100000); // Recomendable combinar con la reducción de velocidad/
 
   // 1. APAGAR TODOS LOS SENSORES
   // Para usar múltiples sensores en el mismo bus, todos arrancan con la dir 0x29

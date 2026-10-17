@@ -14,8 +14,8 @@
 #define KI 0
 #define KD 0.3 //SI LE AGREGO ALGO NO VA A FUNCIONAR!!    
 
-#define VEL_BASE_DER 45
-#define VEL_BASE_IZQ 45
+#define VEL_BASE_DER 38 
+#define VEL_BASE_IZQ 38
 
 #define UMBRAL_LECTURA 100
 
@@ -27,6 +27,8 @@
 //#define PULSOS_GIRO_90_DER 280
 //#define PULSOS_GIRO_90_IZQ 290
 #define PULSOS_POSTGIRO 200
+
+#define SETPOINT 60 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
 
 
 
