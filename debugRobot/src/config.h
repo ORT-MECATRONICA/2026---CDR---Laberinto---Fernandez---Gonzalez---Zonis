@@ -64,21 +64,6 @@
 #define adressCent 0x32
 #define CNY 13
 
-#define PULSOS_CELDA 800
-#define PULSOS_CELDA_MEDIA 400
-#define DISTANCIA_PARADA_FRENTE 50
-#define DISTANCIA_MIN_VALIDA -20
-#define PULSOS_GRACIA_PID 100
-#define PULSOS_MIN_DETECCION_FLANCO 150
-#define PULSOS_WATCHDOG_SEGURIDAD 1050
 #define PULSOS_PREGIRO_90_DER 300
 #define PULSOS_PREGIRO_90_IZQ 10 
 
-
-//===================
-// CONSTANTES DE TIEMPO (ms)
-// Reemplazan a los PULSOS de los encoders
-//===================
-#define TIEMPO_90_GRADOS 350
-#define TIEMPO_AVANCE_PREGIRO 400
-#define TIEMPO_AVANZAR_BLOQUEANTE 500
