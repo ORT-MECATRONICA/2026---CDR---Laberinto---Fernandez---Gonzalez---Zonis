@@ -59,8 +59,8 @@ void movimiento (MOVIMIENTOS movimiento, VELOCIDAD velocidad) {
       digitalWrite(AIN2, HIGH);
       digitalWrite(BIN1, HIGH);
       digitalWrite(BIN2, HIGH);
-      ledcWrite(0, 40);
-      ledcWrite(1, 40);
+      ledcWrite(0, 200);
+      ledcWrite(1, 200);
       break;
     }
   }

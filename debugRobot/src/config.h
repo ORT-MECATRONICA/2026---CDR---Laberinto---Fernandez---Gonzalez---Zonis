@@ -55,7 +55,7 @@
 #define SETPOINT 60 //Es el umbral de distancia medido en MM en el que se encuentra la pared si el robot está centrado
 
 // Umbrales de sensores VL53L0X
-#define UMBRAL_PARED_ESTADO_NORMAL 170 
+#define UMBRAL_PARED_ESTADO_NORMAL 200 //EN BAHIA ESTABA 175 
 #define UMBRAL_FRENTE 100
 
 // [PID] Umbral para que el PID use una pared lateral (mm, ya con offset). Es más bajo que
@@ -65,7 +65,7 @@
 
 // [FIX 1] Tiempo (ms) que el robot queda frenado antes de resetear encoders y pasar a la
 // maniobra siguiente. Absorbe la inercia para que no se cuente como pulsos del estado siguiente.
-#define TIEMPO_FRENO_MS 150
+#define TIEMPO_FRENO_MS 450
 
 // [DEBOUNCE] Cantidad de lecturas completas seguidas (los 3 sensores) que tienen que pedir
 // el mismo estado para entrar en PREGIRO_DER, PREGIRO_IZQ o GIRANDO_180
