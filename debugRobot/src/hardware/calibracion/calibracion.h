@@ -16,6 +16,7 @@ struct ParametrosRobot {
     uint8_t  velBaseDerGiro180;
     uint8_t  velBaseIzqGiro180;
     float    kp;
+    float    kd;   // [PID D] Ganancia derivativa (clave BT: KD)
 };
 
 extern ParametrosRobot configRobot;

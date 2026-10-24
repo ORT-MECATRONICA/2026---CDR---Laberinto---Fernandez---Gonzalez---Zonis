@@ -15,6 +15,9 @@ struct sensado {
     int16_t distanciaCent;
     int16_t distanciaDer;
     int16_t distanciaIzq;
+    // [DEBOUNCE] true solo en la llamada en que se completó una lectura nueva de LOS 3 sensores.
+    // Sirve para contar lecturas reales (~33 ms c/u) y no vueltas del loop.
+    bool nueva;
 };
 
 //Funciones para iniciar los sensores y medir la distancia.
@@ -24,3 +27,9 @@ void inicializacionSensoresDist();
 
 //Función para medir la distancia, llamar en el main. Devuelve un struct con las tres distancias medidas.
 sensado actualizarSensado();
+
+// [OFFSET DINÁMICO] Recalcula los offsets de los sensores laterales con el robot centrado entre paredes.
+void calibrarOffsetsLaterales();
+
+// [DECISION QUIETO] Con el robot QUIETO: mediana de 3 lecturas completas (descarta una lectura falsa suelta).
+sensado leerMediana3();

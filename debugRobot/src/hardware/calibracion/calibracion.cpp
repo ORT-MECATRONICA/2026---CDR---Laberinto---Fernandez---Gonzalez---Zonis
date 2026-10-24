@@ -25,6 +25,7 @@ void inicializarCalibracion() {
     configRobot.velBaseIzqGiro180 = pref.getUChar("v180i", VEL_BASE_IZQ_GIRO180);
 
     configRobot.kp                = pref.getFloat("kp", KP);
+    configRobot.kd                = pref.getFloat("kd", KD); // [PID D]
 
     pref.end();
 }
@@ -49,6 +50,7 @@ void restablecerDefaults() {
     configRobot.velBaseIzqGiro180 = VEL_BASE_IZQ_GIRO180;
 
     configRobot.kp                = KP;
+    configRobot.kd                = KD; // [PID D]
 
     pref.end();
 }
@@ -82,6 +84,7 @@ String procesarComandoCalibracion(String comando) {
 
     String valorStr = comando.substring(idx + 1);
     valorStr.trim();
+    valorStr.replace(',', '.'); // [FIX] "KD=0,5" antes se guardaba como 0
 
     pref.begin(NAMESPACE_NVS, false);
     String resp = "";
@@ -91,6 +94,11 @@ String procesarComandoCalibracion(String comando) {
         configRobot.kp = val;
         pref.putFloat("kp", val);
         resp = "ACK: KP = " + String(val, 3);
+    } else if (clave == "KD") { // [PID D]
+        float val = valorStr.toFloat();
+        configRobot.kd = val;
+        pref.putFloat("kd", val);
+        resp = "ACK: KD = " + String(val, 3);
     } else if (clave == "PRED" || clave == "PRE_DER") {
         uint16_t val = valorStr.toInt();
         configRobot.pulsosPregiroDer = val;
@@ -167,6 +175,7 @@ String procesarComandoCalibracion(String comando) {
 String obtenerReporteCalibracion() {
     String r = "=== CALIBRACION ACTUAL ===\n";
     r += "KP: " + String(configRobot.kp, 3) + "\n";
+    r += "KD: " + String(configRobot.kd, 3) + "\n"; // [PID D]
     r += "Pulsos Pregiro -> DER: " + String(configRobot.pulsosPregiroDer) + " | IZQ: " + String(configRobot.pulsosPregiroIzq) + "\n";
     r += "Pulsos Giro 90 -> DER: " + String(configRobot.pulsosGiro90Der) + " | IZQ: " + String(configRobot.pulsosGiro90Izq) + "\n";
     r += "Pulsos Giro 180 -> IZQ: " + String(configRobot.pulsosGiro180Izq) + " | DER: " + String(configRobot.pulsosGiro180Der) + "\n";
