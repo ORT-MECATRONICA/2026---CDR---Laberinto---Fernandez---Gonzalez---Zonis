@@ -66,7 +66,6 @@ MAQUINA_NUEVA decidirQuieto(const char* origen) {
     else                  siguiente = GIRANDO_180;
   }
 
-  // [LOG LECTURAS] Lectura con el robot quieto y lo que decidió
   String accion = (siguiente == GIRANDO_DER) ? " -> GIRA DERECHA <<<"
                 : (siguiente == GIRANDO_IZQ) ? " -> GIRA IZQUIERDA <<<"
                 : (siguiente == GIRANDO_180) ? " -> GIRA 180 <<<"
@@ -172,7 +171,7 @@ void loop(){
       // [DECISION QUIETO] Seguridad: si la pared de enfrente ya está muy cerca, frena y decide quieto
       // aunque el debounce todavía no haya confirmado nada (si las lecturas laterales titilan, el
       // debounce se reinicia y antes el robot podía seguir derecho hasta chocar de frente).
-      if (sensadoActual.distanciaCent < 50) {
+      if (sensadoActual.distanciaCent < 100) {
         movimiento(FRENO_F, {0,0});
         delay(TIEMPO_FRENO_MS);
         estado = decidirQuieto(">>> FRENTE MUY CERCA");
