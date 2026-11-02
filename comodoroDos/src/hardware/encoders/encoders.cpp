@@ -26,3 +26,7 @@ void resetearEncoders() {
     encoderA.clearCount();
     encoderB.clearCount();
 }
+
+int32_t leerPulsos() {
+  return (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
+}

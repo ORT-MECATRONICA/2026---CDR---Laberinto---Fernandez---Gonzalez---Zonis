@@ -110,14 +110,6 @@
 // También: lecturas tranquilas seguidas para salir de la sospecha.
 #define LECTURAS_CONFIRMACION 3
 
-// [DECISION] Lecturas nuevas que junta con el robot quieto frente a una pared para decidir
-// (antes leerMediana3, que bloqueaba). Si no llegan en TIEMPO_MAX_DECISION_MS, decide con lo que hay.
-#define LECTURAS_DECISION 3
-#define TIEMPO_MAX_DECISION_MS 300
-
-// [NO BLOQUEANTE] Tiempos que antes eran delay()
-#define TIEMPO_LARGADA_MS 1000      // margen para sacar la mano
-#define TIEMPO_ANTIRREBOTE_MS 30
 // [WATCHDOG] Si una maniobra (pregiro, aproximación, giro, postgiro) no termina en este tiempo
 // (rueda trabada, VP demasiado baja), se da por terminada para que el robot no quede colgado
 #define TIEMPO_MAX_MANIOBRA_MS 3000

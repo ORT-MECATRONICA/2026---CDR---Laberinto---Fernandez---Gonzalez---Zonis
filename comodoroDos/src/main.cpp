@@ -50,11 +50,9 @@ uint8_t lecturasTranquilas = 0;
 VELOCIDAD velocidadRampa = {0, 0};
 unsigned long ultimaRampa = 0;
 
-// [VOTOS] Votos de cada sensor durante el pregiro, la aproximación o la decisión
+// [VOTOS] Votos del lado de la abertura durante el pregiro
 VOTOS votosIzq = {0, 0};
-VOTOS votosCent = {0, 0};
 VOTOS votosDer = {0, 0};
-uint8_t lecturasDecision = 0;
 
 // [NO BLOQUEANTE] Estado FRENANDO (como en CITE): a qué estado pasa cuando paran las ruedas
 MAQUINA_NUEVA estadoPostFreno = LISTO;
@@ -64,11 +62,6 @@ int32_t pulsosChequeoFreno = 0;
 
 // [WATCHDOG] Cuándo entró al estado actual
 unsigned long tiempoInicioEstado = 0;
-
-// [NO BLOQUEANTE] Botones
-BOTON boton1 = {BOTON1, false, 0};
-BOTON boton2 = {BOTON2, false, 0};
-bool ignorarSoltarB1 = false;
 
 //==============================================================
 //                    FUNCIONES AUXILIARES
@@ -84,13 +77,8 @@ String textoVotos(VOTOS v) {
   return " (P:" + String(v.pared) + " L:" + String(v.libre) + ")";
 }
 
-// Pulsos promedio de las dos ruedas desde el último resetearEncoders()
-int32_t leerPulsos() {
-  return (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
-}
 
-// [DIGITAL] Pasa una lectura a pared / sin pared. Entre umbralPared y umbralLibre la lectura es
-// dudosa: no cambia nada y queda lo último seguro (histéresis).
+
 void actualizarDigital(int16_t lectura, bool &hayParedDigital) {
   if (lectura < configRobot.umbralPared) hayParedDigital = true;
   else if (lectura > configRobot.umbralLibre) hayParedDigital = false;
@@ -124,26 +112,13 @@ bool hayPared(VOTOS votos, bool estadoDigital) {
 
 void reiniciarVotos() {
   votosIzq = {0, 0};
-  votosCent = {0, 0};
   votosDer = {0, 0};
-  lecturasDecision = 0;
-}
-
-// [NO BLOQUEANTE] Antirrebote por millis(): devuelve SE_APRETO o SE_SOLTO una sola vez por cambio
-EVENTO_BOTON leerBoton(BOTON &b) {
-  bool apretadoAhora = digitalRead(b.pin) == LOW;
-  if (apretadoAhora == b.apretado || millis() - b.ultimoCambio < TIEMPO_ANTIRREBOTE_MS) return SIN_EVENTO;
-  b.apretado = apretadoAhora;
-  b.ultimoCambio = millis();
-  return apretadoAhora ? SE_APRETO : SE_SOLTO;
 }
 
 int16_t menor(int16_t a, int16_t b) {
   return a < b ? a : b;
 }
 
-// [SOSPECHA] Las tres velocidades. Cada una nunca es más rápida que la anterior: si VS o VP
-// quedaron más altas que la velocidad base, se usa la base.
 VELOCIDAD velocidadCrucero() {
   VELOCIDAD v;
   v.izquierda = configRobot.velBaseIzq;
@@ -216,18 +191,6 @@ void volverAAvanzar() {
   tiempoInicioEstado = millis();
 }
 
-// Deja todo como al principio para la próxima largada (parada por botón)
-void reiniciarCorrida() {
-  estadoDetectado = AVANZANDO;
-  lecturasIguales = 0;
-  movimientoAnterior = AVANZANDO; // [180 OPUESTO] La próxima largada arranca sin "último giro"
-  enSospecha = false;
-  lecturasTranquilas = 0;
-  velocidadRampa = {0, 0};
-  reiniciarVotos();
-  resetearErrorAnterior();
-}
-
 //==============================================================
 //                     VOID SETUP
 //==============================================================
@@ -251,27 +214,6 @@ void setup (){
 void loop(){
   leerSensores(); // [NO BLOQUEANTE] Una lectura por vuelta, en todos los estados
 
-  EVENTO_BOTON eventoB1 = leerBoton(boton1);
-  EVENTO_BOTON eventoB2 = leerBoton(boton2);
-
-  // [NO BLOQUEANTE] El soltar del apretón que paró el robot no cuenta como "datos cargados" en LISTO
-  if (ignorarSoltarB1 && eventoB1 == SE_SOLTO) {
-    ignorarSoltarB1 = false;
-    eventoB1 = SIN_EVENTO;
-  }
-
-  // Parar el robot apretando el botón 1. [NO BLOQUEANTE] Ahora en cualquier estado de la corrida
-  // (antes solo en AVANZANDO, porque el while del antirrebote bloqueaba)
-  bool enCorrida = estado != LISTO && estado != INFORMACION_RECIBIDA && estado != ESPERANDO_LARGADA;
-  if (enCorrida && eventoB1 == SE_APRETO) {
-    movimiento(FRENO_F, {0, 0}); // [PRECISION] Frena apenas se aprieta, sin esperar que se suelte
-    reiniciarCorrida();
-    ignorarSoltarB1 = true;
-    enviarString(">>> PARADA POR BOTON 1. VOLVIENDO A LISTO <<<");
-    estado = LISTO;
-    return;
-  }
-
   switch (estado) {
     case LISTO: {
       movimiento(FRENO_F, {0,0});
@@ -283,9 +225,10 @@ void loop(){
       }
       #endif
 
-      // Soltar el Botón 1 para avisar que se terminó de cargar datos
-      if (eventoB1 == SE_SOLTO) {
-        calibrarOffsetsLaterales(); // [OFFSET DINÁMICO] El robot tiene que estar centrado entre dos paredes (quieto, tarda ~0,6 s)
+      // Presionar Botón 1 para avisar que se terminó de cargar datos
+      if (digitalRead(BOTON1) == LOW) {
+        while(digitalRead(BOTON1) == LOW) { delay(10); } // Antirrebote al soltar
+        calibrarOffsetsLaterales(); // [OFFSET DINÁMICO] El robot tiene que estar centrado entre dos paredes
         enviarString(">>> DATOS CARGADOS. SELECCIONE: B1 (RIGHT HAND) o B2 (LEFT HAND) <<<");
         estado = ESPERANDO_LARGADA;
       }
@@ -305,33 +248,25 @@ void loop(){
       // En este estado el robot ya NO revisa SerialBT.available
 
       // Botón 1: Inicia Right Hand
-      if (eventoB1 == SE_SOLTO) {
+      if (digitalRead(BOTON1) == LOW) {
+        while(digitalRead(BOTON1) == LOW) { delay(10); } // Antirrebote al soltar
         modoActual = MODO_RIGHT_HAND;
         enviarString(">>> LARGADA: MODO RIGHT HAND <<<");
-        estado = LARGADA;
-        tiempoInicioEstado = millis();
+        delay(1000); // 1 segundo de margen para sacar la mano
+        resetearEncoders();
+        volverAAvanzar(); // Arranca en sospecha: sube a crucero recién con lecturas tranquilas
         break;
       }
 
       // Botón 2: Inicia Left Hand
-      if (eventoB2 == SE_SOLTO) {
+      if (digitalRead(BOTON2) == LOW) {
+        while(digitalRead(BOTON2) == LOW) { delay(10); } // Antirrebote al soltar
         modoActual = MODO_LEFT_HAND;
         enviarString(">>> LARGADA: MODO LEFT HAND <<<");
-        estado = LARGADA;
-        tiempoInicioEstado = millis();
-        break;
-      }
-      break;
-    }
-
-    case LARGADA: {
-      movimiento(FRENO_F, {0,0});
-      // [NO BLOQUEANTE] 1 segundo de margen para sacar la mano (antes delay(1000)). Mientras tanto los
-      // sensores se siguen leyendo arriba del switch: arranca con lecturas reales y no con ceros.
-      if (millis() - tiempoInicioEstado >= TIEMPO_LARGADA_MS) {
+        delay(1000); // 1 segundo de margen para sacar la mano
         resetearEncoders();
-        velocidadRampa = {0, 0};
         volverAAvanzar(); // Arranca en sospecha: sube a crucero recién con lecturas tranquilas
+        break;
       }
       break;
     }
@@ -478,14 +413,6 @@ void loop(){
       // [FRENTE] Igual que el pregiro: lento hasta el centro de la celda, sin PID (igual que antes)
       actualizarRampa(velocidadPregiro());
       movimiento(AVANZAR, velocidadRampa);
-      if (sensadoActual.nueva) votar(sensadoActual.distanciaCent, votosCent);
-
-      // [NO FRENA] Si el frente aparece libre con lecturas seguras, la pared era falsa: sigue sin frenar
-      if (votosCent.libre >= LECTURAS_CONFIRMACION && votosCent.libre > votosCent.pared) {
-        enviarString(">>> APROXIMACION CANCELADA: frente libre" + textoVotos(votosCent) + " <<<");
-        volverAAvanzar();
-        break;
-      }
 
       bool finAproximacion = pulsosActuales >= PULSOS_APROX_FRENTE
                           || sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE;
@@ -500,20 +427,16 @@ void loop(){
 
     case DECISION: {
       movimiento(FRENO_F, {0,0});
-      // [DECISION QUIETO] Junta LECTURAS_DECISION lecturas nuevas con el robot quieto en el centro de
-      // la celda y decide por mayoría (antes leerMediana3, que bloqueaba ~100 ms)
-      if (sensadoActual.nueva) {
-        votar(sensadoActual.distanciaIzq, votosIzq);
-        votar(sensadoActual.distanciaCent, votosCent);
-        votar(sensadoActual.distanciaDer, votosDer);
-        lecturasDecision++;
-      }
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_DECISION_MS;
-      if (lecturasDecision < LECTURAS_DECISION && !timeout) break;
+      // [DECISION QUIETO] Con el robot quieto en el centro de la celda: mediana de 3 lecturas (~100 ms).
+      // La mediana pasa a digital con los mismos umbrales; si sale dudosa, queda lo último seguro.
+      sensado s = leerMediana3();
+      actualizarDigital(s.distanciaIzq, paredIzq);
+      actualizarDigital(s.distanciaCent, paredCent);
+      actualizarDigital(s.distanciaDer, paredDer);
 
-      bool derLibre    = !hayPared(votosDer, paredDer);
-      bool izqLibre    = !hayPared(votosIzq, paredIzq);
-      bool frenteLibre = !hayPared(votosCent, paredCent);
+      bool derLibre    = !paredDer;
+      bool izqLibre    = !paredIzq;
+      bool frenteLibre = !paredCent;
 
       MAQUINA_NUEVA siguiente;
       if (modoActual == MODO_RIGHT_HAND) {
@@ -534,7 +457,7 @@ void loop(){
                     : (siguiente == GIRANDO_IZQ) ? " -> GIRA IZQUIERDA <<<"
                     : (siguiente == GIRANDO_180) ? " -> GIRA 180 <<<"
                     : " -> SIGUE DERECHO (era lectura falsa) <<<";
-      enviarString(">>> DECISION" + accion + textoLecturas(sensadoActual));
+      enviarString(">>> DECISION" + accion + textoLecturas(s));
 
       if (siguiente == AVANZANDO) {
         resetearEncoders();

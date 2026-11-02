@@ -25,7 +25,6 @@ enum MAQUINA_NUEVA {
     LISTO,
     INFORMACION_RECIBIDA,
     ESPERANDO_LARGADA,
-    LARGADA,             // [NO BLOQUEANTE] Margen para sacar la mano (antes delay(1000))
     AVANZANDO,
     DECISION,            // [DECISION] Ahora SÍ se usa: decide quieto frente a una pared (antes decidirQuieto)
     PREGIRO_DER,
@@ -42,17 +41,4 @@ enum MAQUINA_NUEVA {
 struct VOTOS {
     uint8_t pared;
     uint8_t libre;
-};
-
-// [NO BLOQUEANTE] Botón con antirrebote por millis() (antes while + delay(10))
-struct BOTON {
-    uint8_t pin;
-    bool apretado;
-    unsigned long ultimoCambio;
-};
-
-enum EVENTO_BOTON {
-    SIN_EVENTO,
-    SE_APRETO,
-    SE_SOLTO
 };
