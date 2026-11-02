@@ -1,0 +1,34 @@
+// PRUEBA PARA MEDIR PULSOS_10MS_PWM150 (config.h)
+// 1. Poné CONTROL_VELOCIDAD 0 en config.h y copiá este archivo en main.cpp.
+// 2. Con la batería cargada, poné el robot en un tramo recto y libre de ~1,5 m y apretá B1.
+// 3. Avanza a PWM 150 y manda por BT los pulsos promedio cada 10 ms: ese número va en
+//    PULSOS_10MS_PWM150. Después volvé a poner CONTROL_VELOCIDAD 1 y tu main.
+
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+void setup (){
+  pinMode(BOTON1, INPUT);
+  inicializarLogger();
+  inicializarMotores();
+  inicializarEncoders();
+}
+
+void loop(){
+  movimiento(FRENO_F, {0,0});
+  if (digitalRead(BOTON1) == LOW) {
+    while(digitalRead(BOTON1) == LOW) { delay(10); } // Antirrebote al soltar
+    delay(1000); // Tiempo para sacar la mano
+    movimiento(AVANZAR, {150, 150});
+    delay(500); // Espera a que llegue a la velocidad final
+    verAvanceEncoders();
+    delay(1000); // Mide durante 1 segundo
+    int32_t pulsos = verAvanceEncoders();
+    movimiento(FRENO_F, {0,0});
+    enviarString(">>> PULSOS_10MS_PWM150 = " + String(pulsos / 100.0f));
+  }
+}

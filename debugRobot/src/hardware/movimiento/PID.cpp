@@ -8,6 +8,7 @@
 
 // Valores fijados hardcodeados según especificación
 static const int16_t TOPE = 8;             // Máx. corrección (con base 40 es 20%)
+static const int16_t TOPE_POSTPOSTGIRO = 2 * TOPE; // [POST POST GIRO] Máx. corrección justo después de un giro
 static const int16_t SETPOINT_PARED = 55;  // mm que lee un sensor cuando está centrado
 
 // [PID D] Término derivativo. Mide qué tan rápido se acerca a una pared, o sea el ÁNGULO del
@@ -72,6 +73,56 @@ int16_t calcularCorreccion(sensado mediciones) {
 
     // Ganancias calibrables vía Bluetooth / Preferences (KP=valor, KD=valor)
     return constrain((int16_t)(configRobot.kp * error + configRobot.kd * derivada), -TOPE, TOPE);
+}
+
+
+int16_t calcularCorreccionPOSTIGRO(sensado mediciones) {
+    // [PID] Un valor negativo = pared MUY cerca (lectura cruda menor que el offset). Antes se
+    // descartaba (> 0) y, si del otro lado no había pared, el robot dejaba de corregir justo
+    // cuando estaba por chocar. Ahora cuenta como pared a 0 mm (corrección máxima).
+    int16_t izq = mediciones.distanciaIzq < 0 ? 0 : mediciones.distanciaIzq;
+    int16_t der = mediciones.distanciaDer < 0 ? 0 : mediciones.distanciaDer;
+    // [PID] Umbral propio del PID (UMBRAL_PARED_PID = 110, ver config.h) en vez de 170: cuando una
+    // pared empieza o termina la lectura pasa de a poco por 55..170, y esas lecturas a medias
+    // hacían que el PID diera un volantazo en cada abertura.
+    bool hayIzq = izq < UMBRAL_PARED_PID;
+    bool hayDer = der < UMBRAL_PARED_PID;
+
+    int16_t error;
+    int8_t modo;
+    if (hayIzq && hayDer) {
+        error = izq - der;
+        modo = 3;
+    } else if (hayDer) {
+        error = 2 * (SETPOINT_PARED - der);
+        modo = 2;
+    } else if (hayIzq) {
+        error = 2 * (izq - SETPOINT_PARED);
+        modo = 1;
+    } else {
+        modoAnterior = 0;
+        return 0;
+    }
+
+    if (modo != modoAnterior || abs(error - historial[0]) > SALTO_MAX) {
+        // [PID D] Cambió el tipo de pared, hubo un salto o se reinició: el historial arranca con
+        // el error actual, así el D empieza en 0 en vez de dar un pico
+        for (uint8_t i = 0; i < N_HIST; i++) historial[i] = error;
+        derivada = 0;
+        modoAnterior = modo;
+    } else if (mediciones.nueva) {
+        // [PID D] Lectura nueva: se corre el historial y se recalcula la pendiente
+        for (uint8_t i = N_HIST - 1; i > 0; i--) historial[i] = historial[i - 1];
+        historial[0] = error;
+        derivada = (historial[0] - historial[N_HIST - 1]) / (float)(N_HIST - 1);
+    }
+
+    // Ganancias calibrables vía Bluetooth / Preferences (KP=valor, KD=valor)
+    // [POST POST GIRO] KP doble y también TOPE doble. Con el TOPE normal (8) la corrección se corta en
+    // el mismo valor que en AVANZANDO: con KP 0,2 llega a 8 con 40 mm de error, y con KP doble llega a
+    // 8 con 20 mm. Justo después de un giro malo el error es grande, así que sin subir el tope el
+    // robot no corregiría más que antes.
+    return constrain((int16_t)(configRobot.kp * error * 2 + configRobot.kd * derivada), -TOPE_POSTPOSTGIRO, TOPE_POSTPOSTGIRO);
 }
 
 void resetearErrorAnterior() {

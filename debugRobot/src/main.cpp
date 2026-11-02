@@ -334,6 +334,26 @@ void loop(){
         movimiento(AVANZAR, {configRobot.velBaseIzq, configRobot.velBaseDer});
       } else {
         enviarString(">>> FIN POSTGIRO <<<");
+        estado = POST_POST_GIRO;
+        resetearErrorAnterior();
+        resetearEncoders();
+      }
+      break;
+    }
+
+    case POST_POST_GIRO: {
+      pulsosActuales = (abs(verPulsosEncoderB()) + abs(verPulsosEncoderA())) / 2; 
+      sensadoActual = actualizarSensado();
+      if (pulsosActuales < configRobot.pulsosPostgiro && sensadoActual.distanciaCent >= 50) { // [PRECISION] Corte por pared al frente, igual que PREGIRO
+        // [POST POST GIRO] Avanza con el PID de KP doble (y tope doble) para corregir rápido lo que
+        // dejó el giro. Antes este estado no mandaba nada a los motores: el robot seguía con el
+        // último comando del POSTGIRO, o sea derecho y SIN corrección, el doble de distancia.
+        int16_t correccion = calcularCorreccionPOSTIGRO(sensadoActual);
+        velocidadActual.izquierda = constrain(configRobot.velBaseIzq + correccion, 0, 255);
+        velocidadActual.derecha = constrain(configRobot.velBaseDer - correccion, 0, 255);
+        movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
+      } else {
+        enviarString(">>> PID CON KP DISTINTO <<<");
         estado = AVANZANDO;
         resetearErrorAnterior();
         resetearEncoders();

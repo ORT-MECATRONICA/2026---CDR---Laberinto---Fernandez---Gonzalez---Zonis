@@ -17,8 +17,8 @@
 #define CANT_LECTURAS_DEBOUNCE 3
 
 // Velocidades de avance
-#define VEL_BASE_DER 45
-#define VEL_BASE_IZQ 45
+#define VEL_BASE_DER 150
+#define VEL_BASE_IZQ 150
 
 // Velocidades de giro 90°
 #define VEL_BASE_DER_GIRO 45
@@ -28,6 +28,17 @@
 // Velocidades de giro 180°
 #define VEL_BASE_DER_GIRO180 55
 #define VEL_BASE_IZQ_GIRO180 55
+
+// [VELOCIDAD] Control de velocidad con los encoders (puenteH.cpp): todas las velocidades pasan a
+// ser "la velocidad que da ese PWM con la batería cargada". 0 = PWM directo, como antes.
+#define CONTROL_VELOCIDAD 1
+// [VELOCIDAD] Pulsos promedio que hacen las ruedas cada 10 ms a PWM 150 con la batería cargada.
+// MEDILO con TESTEOS/medirVelocidad.txt: es lo que define qué velocidad es "150".
+#define PULSOS_10MS_PWM150 20
+#define PERIODO_CONTROL_MS 10      // [VELOCIDAD] Cada cuánto corrige
+#define KP_VELOCIDAD 0.5f          // [VELOCIDAD] PWM que suma por cada punto de velocidad que le falta
+#define KI_VELOCIDAD 0.05f         // [VELOCIDAD] Lo que acumula en cada corrección (compensa la batería)
+#define AJUSTE_MAX_VELOCIDAD 50    // [VELOCIDAD] Máximo PWM que suma o resta
 
 // [NO UTILIZADA ACTUALMENTE - MANTENIDA POR REQUISITO]
 #define UMBRAL_LECTURA 100
@@ -67,7 +78,7 @@
 // de ~100, y lo que está entre 110 y 170 son lecturas a medias de una pared que empieza o termina.
 #define UMBRAL_PARED_PID 110
 
-// [FIX 1] Tiempo (ms) que el robot queda frenado antes de resetear encoders y pasar a la
+// [FIX 1] [VELOCIDAD] Máximo que frenar() espera a que las ruedas paren antes de pasar a la
 // maniobra siguiente. Absorbe la inercia para que no se cuente como pulsos del estado siguiente.
 #define TIEMPO_FRENO_MS 250
 

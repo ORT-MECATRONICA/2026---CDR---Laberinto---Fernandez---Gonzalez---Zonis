@@ -12,3 +12,6 @@ int32_t verPulsosEncoderB();
 
 //Función para resetear encoders
 void resetearEncoders();
+
+// [VELOCIDAD] Pulsos promedio que avanzaron las dos ruedas desde la última llamada (siempre positivo)
+int32_t verAvanceEncoders();

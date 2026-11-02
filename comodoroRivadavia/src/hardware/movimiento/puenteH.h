@@ -16,3 +16,6 @@ struct VELOCIDAD {
 
 void movimiento(MOVIMIENTOS movimiento, VELOCIDAD velocidad);
 void inicializarMotores();
+
+// [VELOCIDAD] Frena y espera a que las ruedas paren (como máximo TIEMPO_FRENO_MS)
+void frenar();

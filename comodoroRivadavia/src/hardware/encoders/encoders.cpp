@@ -5,6 +5,7 @@
 
 ESP32Encoder encoderA;
 ESP32Encoder encoderB;
+static int32_t anteriorA = 0, anteriorB = 0; // [VELOCIDAD] Cuentas en la última llamada a verAvanceEncoders()
 
 void inicializarEncoders() {    
   ESP32Encoder::useInternalWeakPullResistors = puType::up;
@@ -23,6 +24,17 @@ int32_t verPulsosEncoderB() {
     return encoderB.getCount();
 }
 void resetearEncoders() {
+    anteriorA -= encoderA.getCount(); // [VELOCIDAD] Corre la referencia con el reset: la medición de velocidad no pierde pulsos
+    anteriorB -= encoderB.getCount();
     encoderA.clearCount();
     encoderB.clearCount();
+}
+
+int32_t verAvanceEncoders() {
+    int32_t cuentaA = encoderA.getCount();
+    int32_t cuentaB = encoderB.getCount();
+    int32_t avance = (abs(cuentaA - anteriorA) + abs(cuentaB - anteriorB)) / 2;
+    anteriorA = cuentaA;
+    anteriorB = cuentaB;
+    return avance;
 }
