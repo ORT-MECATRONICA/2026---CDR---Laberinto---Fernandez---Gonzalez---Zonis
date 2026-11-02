@@ -1,0 +1,212 @@
+//==============================================================
+//                BACHIN
+// VERSIÓN DEL CÓDIGO SIN PID, ÚNICAMENTE CON CALIBRACIÓN DE PULSOS PARA GIROS
+// SE LLAMA BACHIN EN HOMENAJE A "CHIQUILLIN DE BACHIN", DE PIAZOLLA.
+//
+//==============================================================
+
+
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACIÓN DE VARIABLES GLOBALES
+//==============================================================
+
+sensado sensadoActual = {50,200,50};
+VELOCIDAD velocidadActual = {0,0};
+MAQUINA_NUEVA estado = LISTO;
+MOVIMIENTOS movimientoAnterior = AVANZAR;
+uint32_t pulsosActuales = 0;
+//uint32_t tiempoInicioGiro = 0;
+uint16_t PULSOS_GIRO_90_DER = 350;
+uint16_t PULSOS_GIRO_90_IZQ = 350;
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON1, INPUT);
+  inicializarLogger();
+  inicializarMotores(); 
+  inicializarEncoders();
+  inicializacionSensoresDist();
+  resetearEncoders();
+}
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+  
+  switch (estado) {
+    case LISTO: {
+      movimiento(FRENO_F, {0,0});
+      
+      if (hayDatosBT()) {
+        estado = INFORMACION_RECIBIDA;
+        break;
+      }
+      
+      if (digitalRead(BOTON1) == LOW) {
+        //VER SI EL ANTIRREBOTE ES ÓPTIMO
+        while(digitalRead(BOTON1) == LOW) { delay(10); } // Esperar a que se suelte el botón
+        estado = AVANZANDO;
+      }
+      break;
+    }
+
+    case INFORMACION_RECIBIDA: {
+      procesarTramaBT(PULSOS_GIRO_90_DER, PULSOS_GIRO_90_IZQ);
+      estado = LISTO;
+      break;
+    }
+
+
+    case AVANZANDO: {
+      //lineas 77 a 100 modificadas por IA
+      pulsosActuales = (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
+      sensadoActual = actualizarSensado();
+      int16_t correccion = 0;
+      velocidadActual.izquierda = constrain(VEL_BASE_IZQ + correccion, 0, 255);
+      velocidadActual.derecha = constrain(VEL_BASE_DER - correccion, 0, 255);
+     
+     movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
+      
+     
+     
+     //ORDEN Y PROGRESO!!! 
+      bool condicionGiroDer = sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL; // TODO LO DEMÁS NO ME IMPORTA, HAGAN LO QUE HAGAN LOS OTROS SENSORES, GIRO!
+      bool condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_PARED_ESTADO_NORMAL;
+      bool condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
+      bool condicionGiro180 = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
+      if (condicionGiroDer) {
+        enviarString(">>> GIRANDO DERECHA <<<");
+        resetearEncoders();
+        estado = PREGIRO_DER;
+      } else if (condicionAvanzar) {
+        //No necesita resetear encoders!!
+        estado = AVANZANDO;
+      } else if (condicionGiroIzq) {
+      enviarString(">>> GIRANDO IZQUIERDA <<<") ;
+        resetearEncoders();
+        estado = PREGIRO_IZQ;
+      } else if (condicionGiro180) {
+        enviarString(">>> GIRANDO 180 <<<");
+        resetearEncoders();
+        estado = GIRANDO_180;
+      } else {
+        enviarString(">>> ERROR DE SENSADO <<<");
+        movimiento(FRENO_F, {0,0});
+      }
+      break;
+    }
+
+    case  PREGIRO_DER : {
+      pulsosActuales = (abs(verPulsosEncoderB())+abs(verPulsosEncoderA()))/2;
+      sensadoActual = actualizarSensado();
+      if (pulsosActuales < PULSOS_PREGIRO_90_DER && sensadoActual.distanciaCent >= 50) {
+        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> PREGIRO DERECHA <<<");
+        movimiento(FRENO_F, {0,0});
+        estado = GIRANDO_DER;
+        resetearErrorAnterior();
+        resetearEncoders();
+        //tiempoInicioGiro = millis(); // Guardar el tiempo de inicio del giro
+      }
+      break;
+    }
+
+    case PREGIRO_IZQ : {
+      pulsosActuales = (abs(verPulsosEncoderB())+abs(verPulsosEncoderA()))/2;
+      sensadoActual = actualizarSensado();
+      if (pulsosActuales < PULSOS_PREGIRO_90_IZQ && sensadoActual.distanciaCent >= 50) {
+        movimiento(AVANZAR, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> PREGIRO IZQUIERDA <<<");
+        movimiento(FRENO_F, {0,0});
+        estado = GIRANDO_IZQ;
+        resetearErrorAnterior();
+        resetearEncoders();
+       // tiempoInicioGiro = millis(); // Guardar el tiempo de inicio del giro
+      }
+      break;
+    }
+
+
+    case GIRANDO_DER: {
+      pulsosActuales = abs(verPulsosEncoderA());
+      
+      bool cortePorPulsosDer =pulsosActuales < PULSOS_GIRO_90_DER;
+      //bool cortePorTiempoDer = (millis() - tiempoInicioGiro) < 2000; // 2 segundos de margen
+      if (cortePorPulsosDer ) {
+        movimiento(GIRAR_DER, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> GIRANDO DER <<<");
+        movimiento(FRENO_F, {0,0});
+        movimientoAnterior = GIRAR_DER;
+        estado = POSTGIRO;
+        resetearErrorAnterior();
+        resetearEncoders();
+      }
+      break;
+    }
+
+    case GIRANDO_IZQ: {
+      pulsosActuales = abs(verPulsosEncoderB());
+      
+      bool cortePorPulsosIzq =pulsosActuales < PULSOS_GIRO_90_IZQ;
+      //bool cortePorTiempoIzq = (millis() - tiempoInicioGiro) < 2000; // 2 segundos de margen
+      if (cortePorPulsosIzq) {
+        movimiento(GIRAR_IZQ, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> GIRANDO IZQUIERDA <<<");
+        movimiento(FRENO_F, {0,0});
+        movimientoAnterior = GIRAR_IZQ;
+        estado = POSTGIRO;
+        resetearErrorAnterior();
+        resetearEncoders();
+      }
+      break;
+    }
+
+    case POSTGIRO: {
+      pulsosActuales = (abs(verPulsosEncoderB())+abs(verPulsosEncoderA()))/2; 
+      
+      if (pulsosActuales < PULSOS_POSTGIRO) {
+        movimiento(AVANZAR  , {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> FIN POSTGIRO <<<");
+        movimiento(FRENO_F, {0,0});
+        estado = AVANZANDO;
+        resetearErrorAnterior();
+        resetearEncoders();
+      }
+      break;
+    }
+
+
+    case GIRANDO_180: {
+      pulsosActuales = abs(verPulsosEncoderA()); 
+      
+      if (pulsosActuales < PULSOS_GIRO_180) {
+        movimiento(GIRAR_DER, {VEL_BASE_IZQ, VEL_BASE_DER});
+      } else {
+        enviarString(">>> GIRANDO 180 <<<");
+        movimiento(FRENO_F, {0,0});
+        estado = AVANZANDO;
+        resetearErrorAnterior();
+        resetearEncoders();
+      }
+      break;
+    }
+  }
+}
