@@ -17,6 +17,13 @@ struct ParametrosRobot {
     uint8_t  velBaseIzqGiro180;
     float    kp;
     float    kd;   // [PID D] Ganancia derivativa (clave BT: KD)
+    uint8_t  velSospecha;        // [SOSPECHA] clave BT: VS
+    uint8_t  velPregiro;         // [SOSPECHA] clave BT: VP
+    uint8_t  pasoAceleracion;    // [RAMPA] clave BT: ACEL
+    uint8_t  pasoDesaceleracion; // [RAMPA] clave BT: DESAC
+    uint8_t  topePid;            // [PID] % de la velocidad, clave BT: TOPE
+    uint16_t umbralPared;        // [DIGITAL] clave BT: UPARED
+    uint16_t umbralLibre;        // [DIGITAL] clave BT: ULIBRE
 };
 
 extern ParametrosRobot configRobot;

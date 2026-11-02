@@ -27,6 +27,14 @@ void inicializarCalibracion() {
     configRobot.kp                = pref.getFloat("kp", KP);
     configRobot.kd                = pref.getFloat("kd", KD); // [PID D]
 
+    configRobot.velSospecha        = pref.getUChar("vs", VEL_SOSPECHA);         // [SOSPECHA]
+    configRobot.velPregiro         = pref.getUChar("vp", VEL_PREGIRO);          // [SOSPECHA]
+    configRobot.pasoAceleracion    = pref.getUChar("acel", PASO_ACELERACION);    // [RAMPA]
+    configRobot.pasoDesaceleracion = pref.getUChar("desac", PASO_DESACELERACION); // [RAMPA]
+    configRobot.topePid            = pref.getUChar("tope", TOPE_PID);           // [PID]
+    configRobot.umbralPared        = pref.getUShort("upar", UMBRAL_PARED);      // [DIGITAL]
+    configRobot.umbralLibre        = pref.getUShort("ulib", UMBRAL_LIBRE);      // [DIGITAL]
+
     pref.end();
 }
 
@@ -51,6 +59,14 @@ void restablecerDefaults() {
 
     configRobot.kp                = KP;
     configRobot.kd                = KD; // [PID D]
+
+    configRobot.velSospecha        = VEL_SOSPECHA;        // [SOSPECHA]
+    configRobot.velPregiro         = VEL_PREGIRO;         // [SOSPECHA]
+    configRobot.pasoAceleracion    = PASO_ACELERACION;    // [RAMPA]
+    configRobot.pasoDesaceleracion = PASO_DESACELERACION; // [RAMPA]
+    configRobot.topePid            = TOPE_PID;            // [PID]
+    configRobot.umbralPared        = UMBRAL_PARED;        // [DIGITAL]
+    configRobot.umbralLibre        = UMBRAL_LIBRE;        // [DIGITAL]
 
     pref.end();
 }
@@ -164,6 +180,43 @@ String procesarComandoCalibracion(String comando) {
         configRobot.velBaseIzqGiro180 = val;
         pref.putUChar("v180i", val);
         resp = "ACK: velBaseIzqGiro180 = " + String(val);
+    } else if (clave == "VS" || clave == "VEL_SOSPECHA") { // [SOSPECHA]
+        uint8_t val = valorStr.toInt();
+        configRobot.velSospecha = val;
+        pref.putUChar("vs", val);
+        resp = "ACK: velSospecha = " + String(val);
+    } else if (clave == "VP" || clave == "VEL_PREGIRO") { // [SOSPECHA]
+        uint8_t val = valorStr.toInt();
+        configRobot.velPregiro = val;
+        pref.putUChar("vp", val);
+        resp = "ACK: velPregiro = " + String(val);
+    } else if (clave == "ACEL") { // [RAMPA]
+        uint8_t val = valorStr.toInt();
+        if (val == 0) val = 1; // con 0 no arrancaría nunca
+        configRobot.pasoAceleracion = val;
+        pref.putUChar("acel", val);
+        resp = "ACK: pasoAceleracion = " + String(val);
+    } else if (clave == "DESAC") { // [RAMPA]
+        uint8_t val = valorStr.toInt();
+        if (val == 0) val = 1; // con 0 no bajaría nunca la velocidad
+        configRobot.pasoDesaceleracion = val;
+        pref.putUChar("desac", val);
+        resp = "ACK: pasoDesaceleracion = " + String(val);
+    } else if (clave == "TOPE") { // [PID]
+        uint8_t val = valorStr.toInt();
+        configRobot.topePid = val;
+        pref.putUChar("tope", val);
+        resp = "ACK: topePid = " + String(val) + "%";
+    } else if (clave == "UPARED") { // [DIGITAL]
+        uint16_t val = valorStr.toInt();
+        configRobot.umbralPared = val;
+        pref.putUShort("upar", val);
+        resp = "ACK: umbralPared = " + String(val);
+    } else if (clave == "ULIBRE") { // [DIGITAL]
+        uint16_t val = valorStr.toInt();
+        configRobot.umbralLibre = val;
+        pref.putUShort("ulib", val);
+        resp = "ACK: umbralLibre = " + String(val);
     } else {
         resp = "ERROR: Clave desconocida '" + clave + "'. Envie VER para listar parametros.";
     }
@@ -183,6 +236,10 @@ String obtenerReporteCalibracion() {
     r += "Velocidad Avance -> DER: " + String(configRobot.velBaseDer) + " | IZQ: " + String(configRobot.velBaseIzq) + "\n";
     r += "Velocidad Giro 90 -> DER: " + String(configRobot.velBaseDerGiro) + " | IZQ: " + String(configRobot.velBaseIzqGiro) + "\n";
     r += "Velocidad Giro 180 -> DER: " + String(configRobot.velBaseDerGiro180) + " | IZQ: " + String(configRobot.velBaseIzqGiro180) + "\n";
+    r += "Velocidad Sospecha (VS): " + String(configRobot.velSospecha) + " | Pregiro (VP): " + String(configRobot.velPregiro) + "\n";
+    r += "Rampa -> ACEL: " + String(configRobot.pasoAceleracion) + " | DESAC: " + String(configRobot.pasoDesaceleracion) + " (PWM cada " + String(PERIODO_RAMPA_MS) + " ms)\n";
+    r += "Tope PID: " + String(configRobot.topePid) + "% de la velocidad\n";
+    r += "Umbrales -> PARED: <" + String(configRobot.umbralPared) + " | LIBRE: >" + String(configRobot.umbralLibre) + "\n";
     r += "==========================";
     return r;
 }

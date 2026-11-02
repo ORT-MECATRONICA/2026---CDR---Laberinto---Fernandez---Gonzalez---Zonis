@@ -1,4 +1,5 @@
 #pragma once
+#include <Arduino.h>
 
 // Modos de seguidor de pared
 enum MODO_SEGUIDOR {
@@ -24,12 +25,34 @@ enum MAQUINA_NUEVA {
     LISTO,
     INFORMACION_RECIBIDA,
     ESPERANDO_LARGADA,
+    LARGADA,             // [NO BLOQUEANTE] Margen para sacar la mano (antes delay(1000))
     AVANZANDO,
-    DECISION,          // [NO UTILIZADA ACTUALMENTE - MANTENIDA POR REQUISITO]
+    DECISION,            // [DECISION] Ahora SÍ se usa: decide quieto frente a una pared (antes decidirQuieto)
     PREGIRO_DER,
     PREGIRO_IZQ,
+    APROXIMANDO_FRENTE,  // [FRENTE] Se acerca lento a la pared de enfrente hasta el centro de la celda
     POSTGIRO,
     GIRANDO_DER,
     GIRANDO_IZQ,
-    GIRANDO_180
-}; 
+    GIRANDO_180,
+    FRENANDO             // [NO BLOQUEANTE] Freno hasta que paran las ruedas (antes delay(TIEMPO_FRENO_MS))
+};
+
+// [VOTOS] Lecturas seguras de un sensor durante una maniobra (las dudosas no votan)
+struct VOTOS {
+    uint8_t pared;
+    uint8_t libre;
+};
+
+// [NO BLOQUEANTE] Botón con antirrebote por millis() (antes while + delay(10))
+struct BOTON {
+    uint8_t pin;
+    bool apretado;
+    unsigned long ultimoCambio;
+};
+
+enum EVENTO_BOTON {
+    SIN_EVENTO,
+    SE_APRETO,
+    SE_SOLTO
+};

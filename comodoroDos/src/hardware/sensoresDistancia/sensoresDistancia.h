@@ -32,4 +32,5 @@ sensado actualizarSensado();
 void calibrarOffsetsLaterales();
 
 // [DECISION QUIETO] Con el robot QUIETO: mediana de 3 lecturas completas (descarta una lectura falsa suelta).
+// [NO UTILIZADA ACTUALMENTE - MANTENIDA POR REQUISITO] Bloquea ~100 ms: main ahora vota lecturas en DECISION.
 sensado leerMediana3();

@@ -7,7 +7,8 @@
 // KI = 0
 
 // Valores fijados hardcodeados según especificación
-static const int16_t TOPE = 8;             // Máx. corrección (con base 40 es 20%)
+// [PID] TOPE ya no es fijo (antes 8: con base 40 es 20%). Ahora es configRobot.topePid % de la
+// velocidad del momento: con un 8 fijo, a velocidad alta el PID no alcanzaba a corregir.
 static const int16_t SETPOINT_PARED = 55;  // mm que lee un sensor cuando está centrado
 
 // [PID D] Término derivativo. Mide qué tan rápido se acerca a una pared, o sea el ÁNGULO del
@@ -29,7 +30,7 @@ static int16_t historial[N_HIST];          // error de las últimas lecturas nue
 static int8_t  modoAnterior = -1;          // 0 sin paredes, 1 solo izq, 2 solo der, 3 ambas, -1 reiniciar
 static float   derivada = 0;               // cambio del error por lectura (mm)
 
-int16_t calcularCorreccion(sensado mediciones) {
+int16_t calcularCorreccion(sensado mediciones, int16_t velocidadBase) {
     // [PID] Un valor negativo = pared MUY cerca (lectura cruda menor que el offset). Antes se
     // descartaba (> 0) y, si del otro lado no había pared, el robot dejaba de corregir justo
     // cuando estaba por chocar. Ahora cuenta como pared a 0 mm (corrección máxima).
@@ -70,8 +71,12 @@ int16_t calcularCorreccion(sensado mediciones) {
         derivada = (historial[0] - historial[N_HIST - 1]) / (float)(N_HIST - 1);
     }
 
+    // [PID] Tope en % de la velocidad del momento (calibrable por BT con TOPE=valor)
+    int16_t tope = (int32_t)velocidadBase * configRobot.topePid / 100;
+    if (tope < 1) tope = 1;
+
     // Ganancias calibrables vía Bluetooth / Preferences (KP=valor, KD=valor)
-    return constrain((int16_t)(configRobot.kp * error + configRobot.kd * derivada), -TOPE, TOPE);
+    return constrain((int16_t)(configRobot.kp * error + configRobot.kd * derivada), -tope, tope);
 }
 
 void resetearErrorAnterior() {
