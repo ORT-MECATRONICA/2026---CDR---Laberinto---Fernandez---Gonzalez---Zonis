@@ -29,16 +29,9 @@ enum MAQUINA_NUEVA {
     DECISION,            // [DECISION] Ahora SÍ se usa: decide quieto frente a una pared (antes decidirQuieto)
     PREGIRO_DER,
     PREGIRO_IZQ,
-    APROXIMANDO_FRENTE,  // [FRENTE] Se acerca lento a la pared de enfrente hasta el centro de la celda
     POSTGIRO,
     GIRANDO_DER,
     GIRANDO_IZQ,
     GIRANDO_180,
     FRENANDO             // [NO BLOQUEANTE] Freno hasta que paran las ruedas (antes delay(TIEMPO_FRENO_MS))
-};
-
-// [VOTOS] Lecturas seguras de un sensor durante una maniobra (las dudosas no votan)
-struct VOTOS {
-    uint8_t pared;
-    uint8_t libre;
 };

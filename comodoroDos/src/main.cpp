@@ -1,8 +1,9 @@
 //==============================================================
-//                          VERANO
-// VERSIÓN NO BLOQUEANTE PARA ALTA VELOCIDAD: TRES VELOCIDADES (CRUCERO, SOSPECHA Y PREGIRO),
-// SENSORES DIGITALES CON FRANJA DUDOSA Y FRENO SOLO CUANDO HAY QUE GIRAR.
-// SE LLAMA VERANO EN HOMENAJE A "VERANO PORTEÑO", DE PIAZZOLLA (VIENE DESPUÉS DE PRIMAVERA).
+//                          OTOÑO
+// VERANO SIMPLIFICADO: TRES VELOCIDADES (CRUCERO, SOSPECHA Y PREGIRO) CON RAMPA, SENSORES
+// DIGITALES CON FRANJA DUDOSA Y FRENO SOLO CUANDO HAY QUE GIRAR O HAY PARED AL FRENTE.
+// SIN VOTOS Y SIN EL ESTADO APROXIMANDO_FRENTE (AHORA LO HACE AVANZANDO CON PID).
+// SE LLAMA OTOÑO EN HOMENAJE A "OTOÑO PORTEÑO", DE PIAZZOLLA (VIENE DESPUÉS DE VERANO).
 //==============================================================
 
 #include "main.h"
@@ -20,41 +21,28 @@
 //                CREACIÓN DE VARIABLES GLOBALES
 //==============================================================
 
-sensado sensadoActual = {200, 50, 50}; // [FIX] El orden del struct es cent, der, izq (antes {50, 200, 50})
-VELOCIDAD velocidadActual = {0, 0};
+sensado sensadoActual = {200, 50, 50}; // El orden del struct es cent, der, izq
 MAQUINA_NUEVA estado = LISTO;
-
-// [180 OPUESTO] Último giro realizado (GIRANDO_DER / GIRANDO_IZQ). Se usa para elegir el lado del 180.
-// AVANZANDO = todavía no giró.
-MAQUINA_NUEVA movimientoAnterior = AVANZANDO;
-
-uint32_t pulsosActuales = 0;
 
 // Modo de navegación: Right Hand (por defecto) o Left Hand
 MODO_SEGUIDOR modoActual = MODO_RIGHT_HAND;
 
-// [DEBOUNCE] Último estado pedido por los sensores y cuántas lecturas SEGURAS seguidas lo pidieron
-MAQUINA_NUEVA estadoDetectado = AVANZANDO;
-uint8_t lecturasIguales = 0;
+// [180 OPUESTO] Último giro realizado (GIRANDO_DER / GIRANDO_IZQ). AVANZANDO = todavía no giró.
+MAQUINA_NUEVA movimientoAnterior = AVANZANDO;
 
 // [DIGITAL] Último estado SEGURO de cada sensor (true = hay pared). Las lecturas dudosas no lo cambian.
 bool paredIzq = true;
 bool paredCent = false;
 bool paredDer = true;
 
-// [SOSPECHA] true = va a VEL_SOSPECHA. Vuelve a crucero con LECTURAS_CONFIRMACION lecturas tranquilas seguidas
-bool enSospecha = false;
-uint8_t lecturasTranquilas = 0;
+// [DEBOUNCE] Lecturas SEGURAS de libre seguidas del lado prioritario (una de pared lo vuelve a cero)
+uint8_t lecturasAbertura = 0;
 
 // [RAMPA] Velocidad base del momento (sin la corrección del PID)
 VELOCIDAD velocidadRampa = {0, 0};
 unsigned long ultimaRampa = 0;
 
-// [VOTOS] Votos del lado de la abertura durante el pregiro
-VOTOS votosIzq = {0, 0};
-VOTOS votosDer = {0, 0};
-
-// [NO BLOQUEANTE] Estado FRENANDO (como en CITE): a qué estado pasa cuando paran las ruedas
+// [NO BLOQUEANTE] FRENANDO: a qué estado pasa cuando paran las ruedas
 MAQUINA_NUEVA estadoPostFreno = LISTO;
 unsigned long tiempoInicioFreno = 0;
 unsigned long ultimoChequeoFreno = 0;
@@ -67,25 +55,18 @@ unsigned long tiempoInicioEstado = 0;
 //                    FUNCIONES AUXILIARES
 //==============================================================
 
-// [LOG LECTURAS] Arma el texto " I:x C:y D:z" con las 3 distancias, igual que el log del 180
+// [LOG LECTURAS] Arma el texto " I:x C:y D:z" con las 3 distancias
 String textoLecturas(sensado s) {
   return " I:" + String(s.distanciaIzq) + " C:" + String(s.distanciaCent) + " D:" + String(s.distanciaDer);
 }
 
-// [LOG VOTOS] Arma el texto " (P:x L:y)" con los votos de pared y de libre
-String textoVotos(VOTOS v) {
-  return " (P:" + String(v.pared) + " L:" + String(v.libre) + ")";
+// [DIGITAL] Menos de UMBRAL_PARED = pared; más de UMBRAL_LIBRE = libre; en el medio no cambia nada
+void actualizarDigital(int16_t lectura, bool &hayPared) {
+  if (lectura < configRobot.umbralPared) hayPared = true;
+  else if (lectura > configRobot.umbralLibre) hayPared = false;
 }
 
-
-
-void actualizarDigital(int16_t lectura, bool &hayParedDigital) {
-  if (lectura < configRobot.umbralPared) hayParedDigital = true;
-  else if (lectura > configRobot.umbralLibre) hayParedDigital = false;
-}
-
-// [NO BLOQUEANTE] Una pasada de lectura por vuelta del loop, en todos los estados. Así los sensores
-// nunca arrancan con la caché en cero y los estados digitales siempre están al día.
+// Una lectura por vuelta del loop, en todos los estados: los estados digitales siempre están al día
 void leerSensores() {
   sensadoActual = actualizarSensado();
   if (!sensadoActual.nueva) return;
@@ -94,53 +75,29 @@ void leerSensores() {
   actualizarDigital(sensadoActual.distanciaDer, paredDer);
 }
 
-// [VOTOS] Cuenta una lectura segura. Las dudosas no votan.
-void votar(int16_t lectura, VOTOS &votos) {
-  if (lectura < configRobot.umbralPared) {
-    if (votos.pared < 255) votos.pared++;
-  } else if (lectura > configRobot.umbralLibre) {
-    if (votos.libre < 255) votos.libre++;
-  }
+void cambiarEstado(MAQUINA_NUEVA nuevo) {
+  estado = nuevo;
+  tiempoInicioEstado = millis();
 }
 
-// [VOTOS] Gana la mayoría. Si empatan (o no hubo lecturas seguras) se usa el último estado digital.
-bool hayPared(VOTOS votos, bool estadoDigital) {
-  if (votos.pared > votos.libre) return true;
-  if (votos.libre > votos.pared) return false;
-  return estadoDigital;
+// [WATCHDOG] La maniobra tarda demasiado (rueda trabada, VP muy baja): se da por terminada
+bool tiempoAgotado() {
+  return millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS;
 }
 
-void reiniciarVotos() {
-  votosIzq = {0, 0};
-  votosDer = {0, 0};
-}
-
-int16_t menor(int16_t a, int16_t b) {
-  return a < b ? a : b;
-}
-
-VELOCIDAD velocidadCrucero() {
-  VELOCIDAD v;
-  v.izquierda = configRobot.velBaseIzq;
-  v.derecha = configRobot.velBaseDer;
+// [SOSPECHA] Velocidad de crucero limitada a "maxima": VS y VP nunca son más rápidas que la base
+VELOCIDAD velocidadMaxima(int16_t maxima) {
+  VELOCIDAD v = {configRobot.velBaseIzq, configRobot.velBaseDer};
+  if (v.izquierda > maxima) v.izquierda = maxima;
+  if (v.derecha > maxima) v.derecha = maxima;
   return v;
 }
 
-VELOCIDAD velocidadSospecha() {
-  VELOCIDAD v = velocidadCrucero();
-  v.izquierda = menor(configRobot.velSospecha, v.izquierda);
-  v.derecha = menor(configRobot.velSospecha, v.derecha);
-  return v;
-}
+VELOCIDAD velocidadCrucero()  { return velocidadMaxima(255); }
+VELOCIDAD velocidadSospecha() { return velocidadMaxima(configRobot.velSospecha); }
+VELOCIDAD velocidadPregiro()  { return velocidadMaxima(min(configRobot.velPregiro, configRobot.velSospecha)); }
 
-VELOCIDAD velocidadPregiro() {
-  VELOCIDAD v = velocidadSospecha();
-  v.izquierda = menor(configRobot.velPregiro, v.izquierda);
-  v.derecha = menor(configRobot.velPregiro, v.derecha);
-  return v;
-}
-
-// [RAMPA] Acerca una velocidad al objetivo un paso
+// [RAMPA] Acerca una velocidad al objetivo un paso: sube de a ACEL y baja de a DESAC
 int16_t acercarVelocidad(int16_t actual, int16_t objetivo) {
   if (actual < objetivo) {
     actual += configRobot.pasoAceleracion;
@@ -155,7 +112,7 @@ int16_t acercarVelocidad(int16_t actual, int16_t objetivo) {
 
 // [RAMPA] Lleva velocidadRampa hacia el objetivo de a pasos, cada PERIODO_RAMPA_MS (no bloquea).
 // Desde quieto arranca directo en la velocidad de pregiro: es baja (no patina) y por debajo de
-// ella el motor casi no se mueve. Antes pasaba de 0 a la base de golpe.
+// ella el motor casi no se mueve.
 void actualizarRampa(VELOCIDAD objetivo) {
   VELOCIDAD arranque = velocidadPregiro();
   if (velocidadRampa.izquierda < arranque.izquierda) velocidadRampa.izquierda = arranque.izquierda;
@@ -168,7 +125,7 @@ void actualizarRampa(VELOCIDAD objetivo) {
 }
 
 // [NO BLOQUEANTE] Empieza a frenar. FRENANDO sostiene el freno hasta que paran las ruedas y
-// después pasa a "siguiente" (antes: FRENO_F + delay(TIEMPO_FRENO_MS))
+// después pasa a "siguiente"
 void iniciarFreno(MAQUINA_NUEVA siguiente) {
   movimiento(FRENO_F, {0, 0});
   velocidadRampa = {0, 0}; // [RAMPA] Después de frenar vuelve a arrancar desde VP
@@ -179,16 +136,26 @@ void iniciarFreno(MAQUINA_NUEVA siguiente) {
   estado = FRENANDO;
 }
 
-// Vuelve a AVANZANDO SIN FRENAR (lectura falsa, fin del postgiro, largada). Vuelve en sospecha:
-// sube a crucero solo cuando ve LECTURAS_CONFIRMACION lecturas tranquilas seguidas.
+// Vuelve a AVANZANDO SIN FRENAR (largada, abertura falsa, fin del postgiro, decisión de seguir)
 void volverAAvanzar() {
   resetearErrorAnterior();
-  estadoDetectado = AVANZANDO;
-  lecturasIguales = 0;
-  enSospecha = true;
-  lecturasTranquilas = 0;
-  estado = AVANZANDO;
-  tiempoInicioEstado = millis();
+  lecturasAbertura = 0;
+  cambiarEstado(AVANZANDO);
+}
+
+// Avanza derecho SIN PID (pregiro y postgiro). Devuelve true cuando terminó: hizo los pulsos,
+// la pared de enfrente quedó en el centro de la celda o se agotó el tiempo
+bool avanzarHasta(uint16_t pulsos, VELOCIDAD objetivo) {
+  actualizarRampa(objetivo);
+  movimiento(AVANZAR, velocidadRampa);
+  return leerPulsos() >= pulsos || sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE || tiempoAgotado();
+}
+
+// Giro SOLO por encoders: los sensores no intervienen. Devuelve true cuando terminó
+bool girarHasta(MOVIMIENTOS giro, uint16_t pulsos, VELOCIDAD velocidad) {
+  if (leerPulsos() >= pulsos || tiempoAgotado()) return true;
+  movimiento(giro, velocidad);
+  return false;
 }
 
 //==============================================================
@@ -212,7 +179,7 @@ void setup (){
 //==============================================================
 
 void loop(){
-  leerSensores(); // [NO BLOQUEANTE] Una lectura por vuelta, en todos los estados
+  leerSensores(); // Una lectura por vuelta, en todos los estados
 
   switch (estado) {
     case LISTO: {
@@ -246,211 +213,126 @@ void loop(){
     case ESPERANDO_LARGADA: {
       movimiento(FRENO_F, {0,0});
       // En este estado el robot ya NO revisa SerialBT.available
+      // Botón 1: Right Hand. Botón 2: Left Hand
+      bool boton1 = digitalRead(BOTON1) == LOW;
+      bool boton2 = digitalRead(BOTON2) == LOW;
+      if (!boton1 && !boton2) break;
 
-      // Botón 1: Inicia Right Hand
-      if (digitalRead(BOTON1) == LOW) {
-        while(digitalRead(BOTON1) == LOW) { delay(10); } // Antirrebote al soltar
-        modoActual = MODO_RIGHT_HAND;
-        enviarString(">>> LARGADA: MODO RIGHT HAND <<<");
-        delay(1000); // 1 segundo de margen para sacar la mano
-        resetearEncoders();
-        volverAAvanzar(); // Arranca en sospecha: sube a crucero recién con lecturas tranquilas
-        break;
-      }
-
-      // Botón 2: Inicia Left Hand
-      if (digitalRead(BOTON2) == LOW) {
-        while(digitalRead(BOTON2) == LOW) { delay(10); } // Antirrebote al soltar
-        modoActual = MODO_LEFT_HAND;
-        enviarString(">>> LARGADA: MODO LEFT HAND <<<");
-        delay(1000); // 1 segundo de margen para sacar la mano
-        resetearEncoders();
-        volverAAvanzar(); // Arranca en sospecha: sube a crucero recién con lecturas tranquilas
-        break;
-      }
+      while(digitalRead(BOTON1) == LOW || digitalRead(BOTON2) == LOW) { delay(10); } // Antirrebote al soltar
+      modoActual = boton1 ? MODO_RIGHT_HAND : MODO_LEFT_HAND;
+      enviarString(boton1 ? ">>> LARGADA: MODO RIGHT HAND <<<" : ">>> LARGADA: MODO LEFT HAND <<<");
+      delay(1000); // 1 segundo de margen para sacar la mano
+      volverAAvanzar();
       break;
     }
 
     case AVANZANDO: {
-      pulsosActuales = leerPulsos();
-
-      // [FRENTE] Seguridad: si la pared de enfrente ya está en el centro de la celda, frena y decide
-      // quieto sin esperar confirmación (por si el sensor del frente la vio tarde)
+      // [FRENTE] Pared de enfrente en el centro de la celda: frena y decide quieto
       if (sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE) {
         iniciarFreno(DECISION);
-        enviarString(">>> FRENTE MUY CERCA <<<" + textoLecturas(sensadoActual)); // [PRECISION] Log después de frenar
+        enviarString(">>> PARED AL FRENTE <<<" + textoLecturas(sensadoActual)); // Log después de frenar
         break;
       }
 
-      // [SOSPECHA] Crucero si no sospecha nada; si sospecha, baja con rampa a VEL_SOSPECHA
-      actualizarRampa(enSospecha ? velocidadSospecha() : velocidadCrucero());
-      int16_t correccion = calcularCorreccion(sensadoActual, (velocidadRampa.izquierda + velocidadRampa.derecha) / 2);
-      velocidadActual.izquierda = constrain(velocidadRampa.izquierda + correccion, 0, 255);
-      velocidadActual.derecha = constrain(velocidadRampa.derecha - correccion, 0, 255);
-      movimiento(AVANZAR, velocidadActual);
-
-      // [DEBOUNCE] Solo se decide con lecturas nuevas de los 3 sensores (~33 ms), no con vueltas del loop
-      if (!sensadoActual.nueva) break;
-
       // Lado prioritario: RIGHT HAND mira la derecha, LEFT HAND la izquierda
       bool rightHand = modoActual == MODO_RIGHT_HAND;
-      int16_t lecturaPrioridad = rightHand ? sensadoActual.distanciaDer : sensadoActual.distanciaIzq;
-      bool paredPrioridad = rightHand ? paredDer : paredIzq;
+      int16_t lecturaLado = rightHand ? sensadoActual.distanciaDer : sensadoActual.distanciaIzq;
 
-      // [SOSPECHA] Sospecha si la pared del lado prioritario no es segura (dudosa o ausente) o si hay
-      // pared al frente a ~1 celda. Bajar la velocidad es barato: alcanza con una sola lectura.
-      // Girar es caro: eso sí necesita confirmación (abajo).
-      bool sospechaAhora = lecturaPrioridad >= configRobot.umbralPared
-                        || sensadoActual.distanciaCent < UMBRAL_FRENTE_SOSPECHA;
-      if (sospechaAhora) {
-        if (!enSospecha) enviarString(">>> SOSPECHA <<<" + textoLecturas(sensadoActual));
-        enSospecha = true;
-        lecturasTranquilas = 0;
-      } else if (enSospecha) {
-        lecturasTranquilas++;
-        if (lecturasTranquilas >= LECTURAS_CONFIRMACION) {
-          enSospecha = false;
-          enviarString(">>> FIN SOSPECHA: CRUCERO <<<");
+      // [DEBOUNCE] Girar es caro: hacen falta LECTURAS_CONFIRMACION lecturas nuevas SEGURAS de libre
+      // del lado prioritario. Las dudosas no suman ni restan; una de pared vuelve a cero.
+      // Si el lado prioritario tiene pared, el otro lado no importa: sigue derecho SIN FRENAR.
+      if (sensadoActual.nueva) {
+        if (lecturaLado < configRobot.umbralPared) {
+          lecturasAbertura = 0;
+        } else if (lecturaLado > configRobot.umbralLibre) {
+          lecturasAbertura++;
+          // Los pulsos del pregiro se cuentan desde la PRIMERA lectura libre: así PRED/PREI no
+          // dependen de cuánto tarda en confirmar
+          if (lecturasAbertura == 1) resetearEncoders();
+        }
+
+        if (lecturasAbertura >= LECTURAS_CONFIRMACION) {
+          // [ALTA VELOCIDAD] P = pulsos del pregiro que ya se usaron para confirmar. Si se acerca
+          // a PRED/PREI, el robot va demasiado rápido para llegar a VP antes de frenar
+          enviarString(String(rightHand ? ">>> PREGIRO DERECHA" : ">>> PREGIRO IZQUIERDA") +
+                       " P:" + String(leerPulsos()) + " <<<" + textoLecturas(sensadoActual));
+          cambiarEstado(rightHand ? PREGIRO_DER : PREGIRO_IZQ);
+          break;
         }
       }
 
-      // [DEBOUNCE] Estado que piden los sensores digitales en esta lectura.
-      // ORDEN DE PRIORIDADES: 1° lado prioritario libre (pregiro), 2° pared al frente (aproximación;
-      // al final decide quieto entre el otro lado y el 180). Si el frente está libre, el otro lado
-      // no importa: sigue derecho SIN FRENAR.
-      MAQUINA_NUEVA detectado = AVANZANDO;
-      bool lecturaSegura = false; // La lectura que pide el estado está fuera de la franja dudosa
-      if (!paredPrioridad) {
-        detectado = rightHand ? PREGIRO_DER : PREGIRO_IZQ;
-        lecturaSegura = lecturaPrioridad > configRobot.umbralLibre;
-      } else if (paredCent) {
-        detectado = APROXIMANDO_FRENTE;
-        lecturaSegura = sensadoActual.distanciaCent < configRobot.umbralPared;
+      // [SOSPECHA] Bajar la velocidad es barato: alcanza con una sola lectura.
+      //  - VP: abertura del lado prioritario (se está confirmando un giro) o pared cerca al frente
+      //    (frente no libre seguro). En los dos casos viene un freno: llega lento y frena corto.
+      //  - VS: pared del lado prioritario no segura (dudosa) o pared al frente a ~1 celda.
+      //  - Si no: crucero.
+      VELOCIDAD objetivo = velocidadCrucero();
+      if (lecturasAbertura > 0 || sensadoActual.distanciaCent <= configRobot.umbralLibre) {
+        objetivo = velocidadPregiro();
+      } else if (lecturaLado >= configRobot.umbralPared || sensadoActual.distanciaCent < UMBRAL_FRENTE_SOSPECHA) {
+        objetivo = velocidadSospecha();
       }
+      actualizarRampa(objetivo);
 
-      if (detectado == estadoDetectado) {
-        // [DIGITAL] Las lecturas dudosas no suman ni reinician: no dicen nada
-        if (lecturaSegura && lecturasIguales < 255) lecturasIguales++;
-      } else {
-        estadoDetectado = detectado;
-        lecturasIguales = lecturaSegura ? 1 : 0;
-        // Los pulsos del pregiro se cuentan desde la PRIMERA detección (igual que antes),
-        // así PRED/PREI no hay que recalibrarlos por la demora de confirmar.
-        resetearEncoders();
-      }
-
-      if (detectado != AVANZANDO && lecturasIguales >= LECTURAS_CONFIRMACION) {
-        reiniciarVotos();
-        if (detectado == APROXIMANDO_FRENTE) {
-          enviarString(">>> PARED AL FRENTE: APROXIMANDO <<<" + textoLecturas(sensadoActual)); // [LOG LECTURAS]
-        } else {
-          // [VOTOS] Las lecturas que confirmaron la abertura ya cuentan como votos de "libre"
-          if (rightHand) votosDer.libre = lecturasIguales;
-          else votosIzq.libre = lecturasIguales;
-          enviarString(String(rightHand ? ">>> PREGIRO DERECHA <<<" : ">>> PREGIRO IZQUIERDA <<<") + textoLecturas(sensadoActual)); // [LOG LECTURAS]
-        }
-        estado = detectado;
-        tiempoInicioEstado = millis();
-        // [DEBOUNCE] El contador arranca de cero para la próxima decisión
-        estadoDetectado = AVANZANDO;
-        lecturasIguales = 0;
-      }
+      // PID sobre la velocidad de la rampa (el tope del PID es un % de esa velocidad)
+      int16_t correccion = calcularCorreccion(sensadoActual, (velocidadRampa.izquierda + velocidadRampa.derecha) / 2);
+      VELOCIDAD velocidad;
+      velocidad.izquierda = constrain(velocidadRampa.izquierda + correccion, 0, 255);
+      velocidad.derecha = constrain(velocidadRampa.derecha - correccion, 0, 255);
+      movimiento(AVANZAR, velocidad);
       break;
     }
 
     case PREGIRO_DER: {
-      pulsosActuales = leerPulsos();
-      // [SOSPECHA] En el pregiro baja todavía más: llega lento al centro de la celda y frena corto.
-      // Sin PID, igual que antes (el lado del giro está abierto).
-      actualizarRampa(velocidadPregiro());
-      movimiento(AVANZAR, velocidadRampa);
-      // [VOTOS] Mientras avanza sigue mirando la abertura: si la pared vuelve, era una lectura falsa
-      if (sensadoActual.nueva) votar(sensadoActual.distanciaDer, votosDer);
-
-      bool finPregiro = pulsosActuales >= configRobot.pulsosPregiroDer
-                     || sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE;
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (finPregiro || timeout) {
-        if (hayPared(votosDer, paredDer)) {
-          // [NO FRENA] La abertura era falsa: vuelve a AVANZANDO sin frenar (antes frenaba y decidía quieto)
-          enviarString(">>> PREGIRO DERECHA CANCELADO: era lectura falsa" + textoVotos(votosDer) + " <<<");
-          volverAAvanzar();
-        } else {
-          iniciarFreno(GIRANDO_DER);
-          enviarString(">>> FIN PREGIRO DERECHA -> GIRA" + textoVotos(votosDer) + (timeout ? " TIMEOUT" : "") + " <<<");
-        }
+      // [SOSPECHA] A VP hasta el centro de la celda, sin PID (el lado del giro está abierto)
+      if (!avanzarHasta(configRobot.pulsosPregiroDer, velocidadPregiro())) break;
+      if (paredDer) {
+        // [NO FRENA] La última lectura segura de la derecha fue de pared: la abertura era falsa
+        enviarString(">>> PREGIRO DERECHA CANCELADO: era lectura falsa <<<");
+        volverAAvanzar();
+      } else {
+        iniciarFreno(GIRANDO_DER);
+        enviarString(">>> FIN PREGIRO DERECHA -> GIRA <<<");
       }
       break;
     }
 
     case PREGIRO_IZQ: {
-      pulsosActuales = leerPulsos();
-      // [SOSPECHA] En el pregiro baja todavía más: llega lento al centro de la celda y frena corto.
-      // Sin PID, igual que antes (el lado del giro está abierto).
-      actualizarRampa(velocidadPregiro());
-      movimiento(AVANZAR, velocidadRampa);
-      // [VOTOS] Mientras avanza sigue mirando la abertura: si la pared vuelve, era una lectura falsa
-      if (sensadoActual.nueva) votar(sensadoActual.distanciaIzq, votosIzq);
-
-      bool finPregiro = pulsosActuales >= configRobot.pulsosPregiroIzq
-                     || sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE;
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (finPregiro || timeout) {
-        if (hayPared(votosIzq, paredIzq)) {
-          // [NO FRENA] La abertura era falsa: vuelve a AVANZANDO sin frenar (antes frenaba y decidía quieto)
-          enviarString(">>> PREGIRO IZQUIERDA CANCELADO: era lectura falsa" + textoVotos(votosIzq) + " <<<");
-          volverAAvanzar();
-        } else {
-          iniciarFreno(GIRANDO_IZQ);
-          enviarString(">>> FIN PREGIRO IZQUIERDA -> GIRA" + textoVotos(votosIzq) + (timeout ? " TIMEOUT" : "") + " <<<");
-        }
-      }
-      break;
-    }
-
-    case APROXIMANDO_FRENTE: {
-      pulsosActuales = leerPulsos();
-      // [FRENTE] Igual que el pregiro: lento hasta el centro de la celda, sin PID (igual que antes)
-      actualizarRampa(velocidadPregiro());
-      movimiento(AVANZAR, velocidadRampa);
-
-      bool finAproximacion = pulsosActuales >= PULSOS_APROX_FRENTE
-                          || sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE;
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (finAproximacion || timeout) {
-        // Con pared al frente hay que parar sí o sí: frena y decide quieto (otro lado o 180)
-        iniciarFreno(DECISION);
-        enviarString(">>> FIN APROXIMACION <<<" + textoLecturas(sensadoActual)); // [PRECISION] Log después de frenar
+      // [SOSPECHA] A VP hasta el centro de la celda, sin PID (el lado del giro está abierto)
+      if (!avanzarHasta(configRobot.pulsosPregiroIzq, velocidadPregiro())) break;
+      if (paredIzq) {
+        // [NO FRENA] La última lectura segura de la izquierda fue de pared: la abertura era falsa
+        enviarString(">>> PREGIRO IZQUIERDA CANCELADO: era lectura falsa <<<");
+        volverAAvanzar();
+      } else {
+        iniciarFreno(GIRANDO_IZQ);
+        enviarString(">>> FIN PREGIRO IZQUIERDA -> GIRA <<<");
       }
       break;
     }
 
     case DECISION: {
       movimiento(FRENO_F, {0,0});
-      // [DECISION QUIETO] Con el robot quieto en el centro de la celda: mediana de 3 lecturas (~100 ms).
-      // La mediana pasa a digital con los mismos umbrales; si sale dudosa, queda lo último seguro.
+      // [DECISION QUIETO] Robot quieto en el centro de la celda: mediana de 3 lecturas (~100 ms),
+      // pasada a digital con los mismos umbrales (si sale dudosa, queda lo último seguro)
       sensado s = leerMediana3();
       actualizarDigital(s.distanciaIzq, paredIzq);
       actualizarDigital(s.distanciaCent, paredCent);
       actualizarDigital(s.distanciaDer, paredDer);
 
-      bool derLibre    = !paredDer;
-      bool izqLibre    = !paredIzq;
-      bool frenteLibre = !paredCent;
-
       MAQUINA_NUEVA siguiente;
       if (modoActual == MODO_RIGHT_HAND) {
         // ORDEN DE PRIORIDADES RIGHT HAND: 1° Derecha, 2° Frente, 3° Izquierda, 4° 180
-        if (derLibre)         siguiente = GIRANDO_DER;
-        else if (frenteLibre) siguiente = AVANZANDO;
-        else if (izqLibre)    siguiente = GIRANDO_IZQ;
-        else                  siguiente = GIRANDO_180;
+        if (!paredDer)       siguiente = GIRANDO_DER;
+        else if (!paredCent) siguiente = AVANZANDO;
+        else if (!paredIzq)  siguiente = GIRANDO_IZQ;
+        else                 siguiente = GIRANDO_180;
       } else {
         // ORDEN DE PRIORIDADES LEFT HAND: 1° Izquierda, 2° Frente, 3° Derecha, 4° 180
-        if (izqLibre)         siguiente = GIRANDO_IZQ;
-        else if (frenteLibre) siguiente = AVANZANDO;
-        else if (derLibre)    siguiente = GIRANDO_DER;
-        else                  siguiente = GIRANDO_180;
+        if (!paredIzq)       siguiente = GIRANDO_IZQ;
+        else if (!paredCent) siguiente = AVANZANDO;
+        else if (!paredDer)  siguiente = GIRANDO_DER;
+        else                 siguiente = GIRANDO_180;
       }
 
       String accion = (siguiente == GIRANDO_DER) ? " -> GIRA DERECHA <<<"
@@ -459,80 +341,48 @@ void loop(){
                     : " -> SIGUE DERECHO (era lectura falsa) <<<";
       enviarString(">>> DECISION" + accion + textoLecturas(s));
 
-      if (siguiente == AVANZANDO) {
-        resetearEncoders();
-        volverAAvanzar();
-      } else {
-        resetearEncoders();
-        resetearErrorAnterior();
-        estado = siguiente;
-        tiempoInicioEstado = millis();
-      }
+      resetearEncoders();
+      if (siguiente == AVANZANDO) volverAAvanzar();
+      else cambiarEstado(siguiente);
       break;
     }
 
     case GIRANDO_DER: {
-      pulsosActuales = leerPulsos();
-      // Giro SOLO por encoders: los sensores no intervienen
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (pulsosActuales < configRobot.pulsosGiro90Der && !timeout) {
-        movimiento(GIRAR_DER, {configRobot.velBaseIzqGiro, configRobot.velBaseDerGiro});
-      } else {
-        iniciarFreno(POSTGIRO); // [FIX 1] [NO BLOQUEANTE] La inercia del giro no entra al POSTGIRO
-        enviarString(timeout ? ">>> TIMEOUT GIRO DER <<<" : ">>> GIRANDO DER <<<"); // [PRECISION] Log después de frenar
-        movimientoAnterior = GIRANDO_DER;
-      }
+      if (!girarHasta(GIRAR_DER, configRobot.pulsosGiro90Der, {configRobot.velBaseIzqGiro, configRobot.velBaseDerGiro})) break;
+      iniciarFreno(POSTGIRO); // [NO BLOQUEANTE] La inercia del giro no entra al POSTGIRO
+      movimientoAnterior = GIRANDO_DER;
+      enviarString(">>> FIN GIRO DERECHA <<<");
       break;
     }
 
     case GIRANDO_IZQ: {
-      pulsosActuales = leerPulsos();
-      // Giro SOLO por encoders: los sensores no intervienen
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (pulsosActuales < configRobot.pulsosGiro90Izq && !timeout) {
-        movimiento(GIRAR_IZQ, {configRobot.velBaseIzqGiro, configRobot.velBaseDerGiro});
-      } else {
-        iniciarFreno(POSTGIRO); // [FIX 1] [NO BLOQUEANTE] La inercia del giro no entra al POSTGIRO
-        enviarString(timeout ? ">>> TIMEOUT GIRO IZQ <<<" : ">>> GIRANDO IZQUIERDA <<<"); // [PRECISION] Log después de frenar
-        movimientoAnterior = GIRANDO_IZQ;
-      }
-      break;
-    }
-
-    case POSTGIRO: {
-      pulsosActuales = leerPulsos();
-      // [SOSPECHA] Sale del giro a velocidad de sospecha (arranca en VP y sube con rampa). Sin PID,
-      // igual que antes: recién está entrando al pasillo nuevo.
-      actualizarRampa(velocidadSospecha());
-      movimiento(AVANZAR, velocidadRampa);
-      bool finPostgiro = pulsosActuales >= configRobot.pulsosPostgiro
-                      || sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE; // [PRECISION] Corte por pared al frente, igual que PREGIRO
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (finPostgiro || timeout) {
-        enviarString(">>> FIN POSTGIRO <<<");
-        resetearEncoders();
-        volverAAvanzar(); // Sin frenar: sigue en sospecha hasta ver lecturas tranquilas
-      }
+      if (!girarHasta(GIRAR_IZQ, configRobot.pulsosGiro90Izq, {configRobot.velBaseIzqGiro, configRobot.velBaseDerGiro})) break;
+      iniciarFreno(POSTGIRO); // [NO BLOQUEANTE] La inercia del giro no entra al POSTGIRO
+      movimientoAnterior = GIRANDO_IZQ;
+      enviarString(">>> FIN GIRO IZQUIERDA <<<");
       break;
     }
 
     case GIRANDO_180: {
-      pulsosActuales = leerPulsos();
       // [180 OPUESTO] Gira hacia el lado contrario al último giro: si el último fue a la izquierda,
       // el 180 es a la derecha; si fue a la derecha (o todavía no giró), a la izquierda.
-      // movimientoAnterior recién cambia al terminar el giro, así que el lado no cambia a mitad del 180.
-      bool giro180Der = (movimientoAnterior == GIRANDO_IZQ);
+      // movimientoAnterior recién cambia al terminar, así que el lado no cambia a mitad del 180.
+      bool giro180Der = movimientoAnterior == GIRANDO_IZQ;
       uint16_t pulsos180 = giro180Der ? configRobot.pulsosGiro180Der : configRobot.pulsosGiro180Izq;
-      bool timeout = millis() - tiempoInicioEstado > TIEMPO_MAX_MANIOBRA_MS; // [WATCHDOG]
-      if (pulsosActuales < pulsos180 && !timeout) {
-        movimiento(giro180Der ? GIRAR_DER : GIRAR_IZQ, {configRobot.velBaseIzqGiro180, configRobot.velBaseDerGiro180});
-      } else {
-        iniciarFreno(POSTGIRO); // [FIX 1] [NO BLOQUEANTE] La inercia del giro no entra al POSTGIRO
-        enviarString(giro180Der ? ">>> FIN GIRO 180 DER <<<" : ">>> FIN GIRO 180 IZQ <<<"); // [PRECISION] Log después de frenar
-        if (timeout) enviarString(">>> TIMEOUT GIRO 180 <<<");
-        // [180 OPUESTO] Se guarda el lado del 180, así el próximo 180 seguido sale para el otro lado
-        movimientoAnterior = giro180Der ? GIRANDO_DER : GIRANDO_IZQ;
-      }
+      if (!girarHasta(giro180Der ? GIRAR_DER : GIRAR_IZQ, pulsos180, {configRobot.velBaseIzqGiro180, configRobot.velBaseDerGiro180})) break;
+      iniciarFreno(POSTGIRO); // [NO BLOQUEANTE] La inercia del giro no entra al POSTGIRO
+      // [180 OPUESTO] Se guarda el lado del 180, así el próximo 180 seguido sale para el otro lado
+      movimientoAnterior = giro180Der ? GIRANDO_DER : GIRANDO_IZQ;
+      enviarString(giro180Der ? ">>> FIN GIRO 180 DER <<<" : ">>> FIN GIRO 180 IZQ <<<");
+      break;
+    }
+
+    case POSTGIRO: {
+      // [SOSPECHA] Sale del giro a VS (arranca en VP y sube con rampa), sin PID: recién entra al
+      // pasillo nuevo
+      if (!avanzarHasta(configRobot.pulsosPostgiro, velocidadSospecha())) break;
+      enviarString(">>> FIN POSTGIRO <<<");
+      volverAAvanzar(); // Sin frenar
       break;
     }
 
@@ -550,9 +400,7 @@ void loop(){
       if ((ruedasQuietas && tiempoFrenando >= TIEMPO_FRENO_MIN_MS) || tiempoFrenando >= TIEMPO_FRENO_MS) {
         resetearEncoders();
         resetearErrorAnterior();
-        reiniciarVotos();
-        estado = estadoPostFreno;
-        tiempoInicioEstado = millis();
+        cambiarEstado(estadoPostFreno);
       }
       break;
     }

@@ -21,8 +21,9 @@
 // [SOSPECHA] Velocidad cuando algo puede cambiar (pared del lado prioritario dudosa o ausente,
 // pared al frente a ~1 celda). Calibrable por BT con VS=valor
 #define VEL_SOSPECHA 70
-// [SOSPECHA] Velocidad en PREGIRO y aproximación a la pared de enfrente: más baja todavía.
-// 45 = la velocidad con la que se calibraron PRED, PREI y POST. Calibrable por BT con VP=valor
+// [SOSPECHA] Velocidad cuando viene un freno: abertura del lado prioritario, PREGIRO y pared cerca
+// al frente. Más baja todavía. 45 = la velocidad con la que se calibraron PRED, PREI y POST.
+// Calibrable por BT con VP=valor
 // Nunca es más rápida que la anterior: si VS o VP quedan más altas que la base, se usa la base.
 #define VEL_PREGIRO 45
 
@@ -84,14 +85,12 @@
 #define UMBRAL_PARED 85
 #define UMBRAL_LIBRE 130
 
-// [SOSPECHA] Si el frente lee menos que esto, baja a VEL_SOSPECHA (pared a ~1 celda: 50 + 180)
+// [SOSPECHA] Si el frente lee menos que esto, baja a VEL_SOSPECHA (pared a ~1 celda: 50 + 180).
+// Si lee UMBRAL_LIBRE o menos (no es libre seguro), baja a VEL_PREGIRO
 #define UMBRAL_FRENTE_SOSPECHA 250
-// [FRENTE] Pared de enfrente a esta distancia = robot en el centro de la celda. Corta el pregiro,
-// la aproximación y el postgiro, y en AVANZANDO frena sin esperar confirmación (antes 50 en main)
+// [FRENTE] Pared de enfrente a esta distancia = robot en el centro de la celda. Corta el pregiro
+// y el postgiro, y en AVANZANDO frena para decidir quieto (antes 50 en main)
 #define DISTANCIA_CORTE_FRENTE 50
-// [FRENTE] Pulsos máximos de la aproximación a la pared de enfrente (normalmente corta antes por
-// DISTANCIA_CORTE_FRENTE; esto es por si el sensor del frente falla)
-#define PULSOS_APROX_FRENTE 200
 
 // [PID] Umbral para que el PID use una pared lateral (mm, ya con offset). Es más bajo que
 // UMBRAL_PARED_ESTADO_NORMAL a propósito: con el robot en un pasillo la lectura real nunca pasa
@@ -105,12 +104,11 @@
 #define TIEMPO_FRENO_MIN_MS 30
 #define PERIODO_CHEQUEO_FRENO_MS 10
 
-// [DEBOUNCE] Cantidad de lecturas SEGURAS seguidas (fuera de la franja dudosa) que tienen que pedir
-// el mismo estado para entrar en PREGIRO o en la aproximación a la pared de enfrente.
-// También: lecturas tranquilas seguidas para salir de la sospecha.
+// [DEBOUNCE] Cantidad de lecturas SEGURAS de libre (más de UMBRAL_LIBRE) del lado prioritario
+// para entrar en PREGIRO. Las dudosas no cuentan; una de pared vuelve a cero.
 #define LECTURAS_CONFIRMACION 3
 
-// [WATCHDOG] Si una maniobra (pregiro, aproximación, giro, postgiro) no termina en este tiempo
+// [WATCHDOG] Si una maniobra (pregiro, giro, postgiro) no termina en este tiempo
 // (rueda trabada, VP demasiado baja), se da por terminada para que el robot no quede colgado
 #define TIEMPO_MAX_MANIOBRA_MS 3000
 
