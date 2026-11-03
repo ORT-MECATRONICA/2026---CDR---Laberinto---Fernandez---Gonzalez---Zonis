@@ -261,11 +261,7 @@ void loop(){
         }
       }
 
-      // [SOSPECHA] Bajar la velocidad es barato: alcanza con una sola lectura.
-      //  - VP: abertura del lado prioritario (se está confirmando un giro) o pared cerca al frente
-      //    (frente no libre seguro). En los dos casos viene un freno: llega lento y frena corto.
-      //  - VS: pared del lado prioritario no segura (dudosa) o pared al frente a ~1 celda.
-      //  - Si no: crucero.
+      
       VELOCIDAD objetivo = velocidadCrucero();
       if (lecturasAbertura > 0 || sensadoActual.distanciaCent <= configRobot.umbralLibre) {
         objetivo = velocidadPregiro();
