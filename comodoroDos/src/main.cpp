@@ -227,14 +227,11 @@ void loop(){
     }
 
     case AVANZANDO: {
-      // [FRENTE] Pared de enfrente en el centro de la celda: frena y decide quieto
       if (sensadoActual.distanciaCent < DISTANCIA_CORTE_FRENTE) {
         iniciarFreno(DECISION);
-        enviarString(">>> PARED AL FRENTE <<<" + textoLecturas(sensadoActual)); // Log después de frenar
+        enviarString(">>> PARED AL FRENTE <<<" + textoLecturas(sensadoActual)); 
         break;
       }
-
-      // Lado prioritario: RIGHT HAND mira la derecha, LEFT HAND la izquierda
       bool rightHand = modoActual == MODO_RIGHT_HAND;
       int16_t lecturaLado = rightHand ? sensadoActual.distanciaDer : sensadoActual.distanciaIzq;
 
