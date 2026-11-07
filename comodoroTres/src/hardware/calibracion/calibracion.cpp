@@ -86,81 +86,90 @@ String procesarComandoCalibracion(String comando) {
     valorStr.trim();
     valorStr.replace(',', '.'); // [FIX] "KD=0,5" antes se guardaba como 0
 
+    // [E11] Valores fuera de rango. Antes "VD=-5" se guardaba como 251 (casi a fondo) y "VD=300"
+    // como 44, porque se metía el número directo en un uint8_t; un KP negativo daba vuelta el PID.
+    // Ahora las velocidades quedan entre 0 y 255 y nada puede ser negativo.
+    long entero = valorStr.toInt();
+    uint8_t valorVelocidad = constrain(entero, 0L, 255L);
+    uint16_t valorPulsos = constrain(entero, 0L, 65535L);
+    float valorGanancia = valorStr.toFloat();
+    if (valorGanancia < 0) valorGanancia = 0;
+
     pref.begin(NAMESPACE_NVS, false);
     String resp = "";
 
     if (clave == "KP") {
-        float val = valorStr.toFloat();
+        float val = valorGanancia;
         configRobot.kp = val;
         pref.putFloat("kp", val);
         resp = "ACK: KP = " + String(val, 3);
     } else if (clave == "KD") { // [PID D]
-        float val = valorStr.toFloat();
+        float val = valorGanancia;
         configRobot.kd = val;
         pref.putFloat("kd", val);
         resp = "ACK: KD = " + String(val, 3);
     } else if (clave == "PRED" || clave == "PRE_DER") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosPregiroDer = val;
         pref.putUShort("pred", val);
         resp = "ACK: pulsosPregiroDer = " + String(val);
     } else if (clave == "PREI" || clave == "PRE_IZQ") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosPregiroIzq = val;
         pref.putUShort("prei", val);
         resp = "ACK: pulsosPregiroIzq = " + String(val);
     } else if (clave == "POST") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosPostgiro = val;
         pref.putUShort("post", val);
         resp = "ACK: pulsosPostgiro = " + String(val);
     } else if (clave == "G90D" || clave == "P90D" || clave == "GIRO_DER") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosGiro90Der = val;
         pref.putUShort("g90d", val);
         resp = "ACK: pulsosGiro90Der = " + String(val);
     } else if (clave == "G90I" || clave == "P90I" || clave == "GIRO_IZQ") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosGiro90Izq = val;
         pref.putUShort("g90i", val);
         resp = "ACK: pulsosGiro90Izq = " + String(val);
     } else if (clave == "G180" || clave == "G180I" || clave == "P180I" || clave == "GIRO_180") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosGiro180Izq = val;
         pref.putUShort("g180i", val);
         resp = "ACK: pulsosGiro180Izq = " + String(val);
     } else if (clave == "G180D" || clave == "P180D") {
-        uint16_t val = valorStr.toInt();
+        uint16_t val = valorPulsos;
         configRobot.pulsosGiro180Der = val;
         pref.putUShort("g180d", val);
         resp = "ACK: pulsosGiro180Der = " + String(val);
     } else if (clave == "VD" || clave == "VEL_DER") {
-        uint8_t val = valorStr.toInt();
+        uint8_t val = valorVelocidad;
         configRobot.velBaseDer = val;
         pref.putUChar("vd", val);
         resp = "ACK: velBaseDer = " + String(val);
     } else if (clave == "VI" || clave == "VEL_IZQ") {
-        uint8_t val = valorStr.toInt();
+        uint8_t val = valorVelocidad;
         configRobot.velBaseIzq = val;
         pref.putUChar("vi", val);
         resp = "ACK: velBaseIzq = " + String(val);
     } else if (clave == "VGD" || clave == "VEL_G_DER") {
-        uint8_t val = valorStr.toInt();
+        uint8_t val = valorVelocidad;
         configRobot.velBaseDerGiro = val;
         pref.putUChar("vgd", val);
         resp = "ACK: velBaseDerGiro = " + String(val);
     } else if (clave == "VGI" || clave == "VEL_G_IZQ") {
-        uint8_t val = valorStr.toInt();
+        uint8_t val = valorVelocidad;
         configRobot.velBaseIzqGiro = val;
         pref.putUChar("vgi", val);
         resp = "ACK: velBaseIzqGiro = " + String(val);
     } else if (clave == "V180D" || clave == "VEL_180_DER") {
-        uint8_t val = valorStr.toInt();
+        uint8_t val = valorVelocidad;
         configRobot.velBaseDerGiro180 = val;
         pref.putUChar("v180d", val);
         resp = "ACK: velBaseDerGiro180 = " + String(val);
     } else if (clave == "V180I" || clave == "VEL_180_IZQ") {
-        uint8_t val = valorStr.toInt();
+        uint8_t val = valorVelocidad;
         configRobot.velBaseIzqGiro180 = val;
         pref.putUChar("v180i", val);
         resp = "ACK: velBaseIzqGiro180 = " + String(val);

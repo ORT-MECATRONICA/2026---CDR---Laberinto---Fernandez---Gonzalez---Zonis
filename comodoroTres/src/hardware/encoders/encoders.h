@@ -12,3 +12,6 @@ int32_t verPulsosEncoderB();
 
 //Función para resetear encoders
 void resetearEncoders();
+
+// [E2] Pulsos desde el último reset: promedio de |A| y |B| (vale para avanzar y para girar)
+int32_t leerPulsos();

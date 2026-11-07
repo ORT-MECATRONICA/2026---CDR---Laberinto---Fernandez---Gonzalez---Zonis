@@ -26,3 +26,10 @@ void resetearEncoders() {
     encoderA.clearCount();
     encoderB.clearCount();
 }
+
+// [E2] Pulsos desde el último resetearEncoders(): promedio de las dos ruedas en valor absoluto.
+// Sirve igual para avanzar y para girar (en un giro una rueda va para atrás). Es la misma cuenta
+// que antes estaba repetida en cada estado del main.
+int32_t leerPulsos() {
+    return (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
+}

@@ -23,7 +23,12 @@ struct sensado {
 //Funciones para iniciar los sensores y medir la distancia.
 
 //Función para inicializar los tres sensores, llamar en el main.
-void inicializacionSensoresDist();
+// [E7] Devuelve false si algún sensor no contestó. Se puede volver a llamar para REINICIARLOS.
+bool inicializacionSensoresDist();
+
+// [E7] Nombre del primer sensor que lleva más de TIEMPO_SENSOR_COLGADO_MS sin dar una lectura
+// válida, o nullptr si andan los tres.
+const char* sensorSinRespuesta();
 
 //Función para medir la distancia, llamar en el main. Devuelve un struct con las tres distancias medidas.
 sensado actualizarSensado();
