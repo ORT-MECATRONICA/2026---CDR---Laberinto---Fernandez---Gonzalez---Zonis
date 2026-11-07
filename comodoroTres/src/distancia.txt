@@ -1,0 +1,46 @@
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/sensoresDistancia/sensoresDistancia.h"
+#include "hardware/movimiento/PID.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+//==============================================================
+//                CREACIÓN DE VARIABLES GLOBALES
+//==============================================================
+
+sensado sensadoActual = {0,0,0};
+
+VELOCIDAD velocidadActual = {0,0};
+
+//==============================================================
+//                     VOID SETUP
+//==============================================================
+
+void setup (){
+  pinMode(BOTON1, INPUT);
+  inicializarLogger();
+  inicializacionSensoresDist(); // Se descomentó para iniciar sensores
+  inicializarMotores(); 
+  inicializarEncoders();
+}
+
+
+//==============================================================
+//                       VOID LOOP
+//==============================================================
+
+void loop(){
+  sensadoActual = actualizarSensado();
+  
+  Serial.print("Izq: ");
+  Serial.print(sensadoActual.distanciaIzq);
+  Serial.print(" | Cent: ");
+  Serial.print(sensadoActual.distanciaCent);
+  Serial.print(" | Der: ");
+  Serial.println(sensadoActual.distanciaDer);
+  
+  delay(100);
+}

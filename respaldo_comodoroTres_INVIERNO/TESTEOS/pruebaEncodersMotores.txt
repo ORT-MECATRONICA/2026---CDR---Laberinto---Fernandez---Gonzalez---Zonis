@@ -1,0 +1,45 @@
+// PRUEBA: ¿QUÉ ENCODER ES DE QUÉ MOTOR? (y para qué lado cuenta cada uno)
+// 1. Copiá este archivo en src/main.cpp (guardá antes tu main).
+// 2. Levantá el robot (ruedas en el aire) y apretá B1.
+// 3. Mueve 300 ms el motor de PWMA (en el código: velocidad.izquierda) y después el de PWMB
+//    (velocidad.derecha), los dos con AVANZAR. Por BT/USB dice cuánto contó cada encoder.
+//    Fijate también A OJO qué rueda física se movió en cada paso (izquierda o derecha del robot).
+// Resultado esperado si está "derecho": PWMA mueve el encoder A y PWMB el encoder B.
+
+#include "main.h"
+#include <Arduino.h>
+#include "hardware/logger/logger.h"
+#include "hardware/movimiento/puenteH.h"
+#include "hardware/encoders/encoders.h"
+#include "config.h"
+
+void probarMotor(const char* nombre, VELOCIDAD velocidad) {
+  resetearEncoders();
+  movimiento(AVANZAR, velocidad);
+  delay(300);
+  movimiento(FRENO_F, {0, 0});
+  delay(300); // que paren las ruedas
+  int32_t a = verPulsosEncoderA();
+  int32_t b = verPulsosEncoderB();
+  String quien = (abs(a) > abs(b)) ? "ENCODER A" : "ENCODER B";
+  enviarString(String(">>> ") + nombre + ": A=" + String(a) + " B=" + String(b) + " -> lo mide el " + quien +
+               (((abs(a) > abs(b)) ? a : b) > 0 ? " (cuenta POSITIVO al avanzar)" : " (cuenta NEGATIVO al avanzar)") + " <<<");
+}
+
+void setup() {
+  pinMode(BOTON1, INPUT);
+  inicializarLogger();
+  inicializarMotores();
+  inicializarEncoders();
+  enviarString(">>> PRUEBA ENCODERS/MOTORES: levantá el robot y apretá B1 <<<");
+}
+
+void loop() {
+  movimiento(FRENO_F, {0, 0});
+  if (digitalRead(BOTON1) == LOW) {
+    while (digitalRead(BOTON1) == LOW) { delay(10); } // Antirrebote al soltar
+    delay(1000); // margen para sacar la mano
+    probarMotor("MOTOR PWMA (velocidad.izquierda)", {80, 0});
+    probarMotor("MOTOR PWMB (velocidad.derecha)", {0, 80});
+  }
+}
