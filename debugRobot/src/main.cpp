@@ -33,46 +33,9 @@ uint32_t pulsosActuales = 0;
 // Modo de navegación: Right Hand (por defecto) o Left Hand
 MODO_SEGUIDOR modoActual = MODO_RIGHT_HAND;
 
-// [DEBOUNCE] Último estado pedido por los sensores y cuántas lecturas seguidas lo pidieron
-MAQUINA_NUEVA estadoDetectado = AVANZANDO;
-uint8_t lecturasIguales = 0;
-
-// [LOG LECTURAS] Arma el texto " I:x C:y D:z" con las 3 distancias, igual que el log del 180
+// Arma el texto " I:x C:y D:z" con las 3 distancias para los logs
 String textoLecturas(sensado s) {
   return " I:" + String(s.distanciaIzq) + " C:" + String(s.distanciaCent) + " D:" + String(s.distanciaDer);
-}
-
-// [DECISION QUIETO] Se llama con el robot FRENADO al terminar el pregiro (centro de la celda).
-// Vuelve a leer los sensores (mediana de 3 lecturas) y decide con las mismas prioridades que
-// AVANZANDO. Si lo detectado en movimiento era una lectura falsa, no gira y sigue avanzando.
-MAQUINA_NUEVA decidirQuieto(const char* origen) {
-  sensado s = leerMediana3();
-  bool derLibre    = s.distanciaDer  >= UMBRAL_PARED_ESTADO_NORMAL;
-  bool izqLibre    = s.distanciaIzq  >= UMBRAL_PARED_ESTADO_NORMAL;
-  bool frenteLibre = s.distanciaCent >= UMBRAL_FRENTE;
-
-  MAQUINA_NUEVA siguiente;
-  if (modoActual == MODO_RIGHT_HAND) {
-    // ORDEN DE PRIORIDADES RIGHT HAND: 1° Derecha, 2° Frente, 3° Izquierda, 4° 180
-    if (derLibre)         siguiente = GIRANDO_DER;
-    else if (frenteLibre) siguiente = AVANZANDO;
-    else if (izqLibre)    siguiente = GIRANDO_IZQ;
-    else                  siguiente = GIRANDO_180;
-  } else {
-    // ORDEN DE PRIORIDADES LEFT HAND: 1° Izquierda, 2° Frente, 3° Derecha, 4° 180
-    if (izqLibre)         siguiente = GIRANDO_IZQ;
-    else if (frenteLibre) siguiente = AVANZANDO;
-    else if (derLibre)    siguiente = GIRANDO_DER;
-    else                  siguiente = GIRANDO_180;
-  }
-
-  // [LOG LECTURAS] Lectura con el robot quieto y lo que decidió
-  String accion = (siguiente == GIRANDO_DER) ? " -> GIRA DERECHA <<<"
-                : (siguiente == GIRANDO_IZQ) ? " -> GIRA IZQUIERDA <<<"
-                : (siguiente == GIRANDO_180) ? " -> GIRA 180 <<<"
-                : " -> SIGUE DERECHO (era lectura falsa) <<<";
-  enviarString(String(origen) + accion + textoLecturas(s));
-  return siguiente;
 }
 
 //==============================================================
@@ -157,105 +120,49 @@ void loop(){
     case AVANZANDO: {
       // Parar el robot presionando el botón 1 (ÚNICAMENTE CUANDO ESTÁ EN EL ESTADO AVANZANDO)
       if (digitalRead(BOTON1) == LOW) {
-        movimiento(FRENO_F, {0, 0}); // [PRECISION] Frena ANTES de esperar que se suelte el botón
+        movimiento(FRENO_F, {0, 0}); // Frena ANTES de esperar que se suelte el botón
         while(digitalRead(BOTON1) == LOW) { delay(10); } // Antirrebote al soltar
-        estadoDetectado = AVANZANDO; lecturasIguales = 0; // [DEBOUNCE] Arranca de cero en la próxima largada
         movimientoAnterior = AVANZANDO; // [180 OPUESTO] La próxima largada arranca sin "último giro"
         enviarString(">>> PARADA POR BOTON 1. VOLVIENDO A LISTO <<<");
         estado = LISTO;
         break;
       }
 
-      pulsosActuales = (abs(verPulsosEncoderA()) + abs(verPulsosEncoderB())) / 2;
       sensadoActual = actualizarSensado();
-
-      // [DECISION QUIETO] Seguridad: si la pared de enfrente ya está muy cerca, frena y decide quieto
-      // aunque el debounce todavía no haya confirmado nada (si las lecturas laterales titilan, el
-      // debounce se reinicia y antes el robot podía seguir derecho hasta chocar de frente).
-      if (sensadoActual.distanciaCent < 50) {
-        movimiento(FRENO_F, {0,0});
-        delay(TIEMPO_FRENO_MS);
-        estado = decidirQuieto(">>> FRENTE MUY CERCA");
-        resetearErrorAnterior();
-        resetearEncoders();
-        estadoDetectado = AVANZANDO; lecturasIguales = 0;
-        break;
-      }
 
       int16_t correccion = calcularCorreccion(sensadoActual);
       velocidadActual.izquierda = constrain(configRobot.velBaseIzq + correccion, 0, 255);
       velocidadActual.derecha = constrain(configRobot.velBaseDer - correccion, 0, 255);
       movimiento(AVANZAR, {velocidadActual.izquierda, velocidadActual.derecha});
-     
-      bool condicionGiroDer = false;
-      bool condicionAvanzar = false;
-      bool condicionGiroIzq = false;
-      bool condicionGiro180 = false;
 
-      if (modoActual == MODO_RIGHT_HAND) {
-        // ORDEN DE PRIORIDADES RIGHT HAND: 1° Derecha, 2° Frente, 3° Izquierda, 4° 180
-        condicionGiroDer = sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL;
-        condicionAvanzar = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_FRENTE;
-        condicionGiroIzq = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_FRENTE && sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
-        condicionGiro180 = sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_FRENTE && sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL;
+      // "Prioritario" = el lado de la mano elegida; "opuesto" = el otro
+      bool derLibre = sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL;
+      bool izqLibre = sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
+      bool frenteLibre = sensadoActual.distanciaCent >= UMBRAL_FRENTE;
+      bool prioritarioLibre = (modoActual == MODO_RIGHT_HAND) ? derLibre : izqLibre;
+      bool opuestoLibre     = (modoActual == MODO_RIGHT_HAND) ? izqLibre : derLibre;
+      MAQUINA_NUEVA pregiroPrioritario = (modoActual == MODO_RIGHT_HAND) ? PREGIRO_DER : PREGIRO_IZQ;
+      MAQUINA_NUEVA pregiroOpuesto      = (modoActual == MODO_RIGHT_HAND) ? PREGIRO_IZQ : PREGIRO_DER;
+
+      // ORDEN DE PRIORIDADES: 1° lado de la mano, 2° Frente, 3° lado opuesto, 4° 180
+      if (prioritarioLibre) {
+        enviarString((pregiroPrioritario == PREGIRO_DER ? ">>> GIRANDO DERECHA <<<" : ">>> GIRANDO IZQUIERDA <<<") + textoLecturas(sensadoActual));
+        estado = pregiroPrioritario;
+        resetearEncoders();
+      } else if (frenteLibre) {
+        // Sigue avanzando
+      } else if (opuestoLibre) {
+        enviarString((pregiroOpuesto == PREGIRO_DER ? ">>> GIRANDO DERECHA <<<" : ">>> GIRANDO IZQUIERDA <<<") + textoLecturas(sensadoActual));
+        estado = pregiroOpuesto;
+        resetearEncoders();
       } else {
-        // ORDEN DE PRIORIDADES LEFT HAND: 1° Izquierda, 2° Frente, 3° Derecha, 4° 180
-        condicionGiroIzq = sensadoActual.distanciaIzq >= UMBRAL_PARED_ESTADO_NORMAL;
-        condicionAvanzar = sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent >= UMBRAL_FRENTE;
-        condicionGiroDer = sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_FRENTE && sensadoActual.distanciaDer >= UMBRAL_PARED_ESTADO_NORMAL;
-        condicionGiro180 = sensadoActual.distanciaIzq < UMBRAL_PARED_ESTADO_NORMAL && sensadoActual.distanciaCent < UMBRAL_FRENTE && sensadoActual.distanciaDer < UMBRAL_PARED_ESTADO_NORMAL;
-      }
-
-      // [DEBOUNCE] Estado que piden los sensores en esta vuelta (las 4 condiciones son excluyentes)
-      MAQUINA_NUEVA detectado = condicionGiroDer ? PREGIRO_DER
-                              : condicionAvanzar ? AVANZANDO
-                              : condicionGiroIzq ? PREGIRO_IZQ
-                              : GIRANDO_180;
-
-      // [DEBOUNCE] Solo se cuenta cuando llegó una lectura completa nueva de los 3 sensores
-      if (sensadoActual.nueva) {
-        if (detectado == estadoDetectado) {
-          if (lecturasIguales < 255) lecturasIguales++;
-        } else {
-          estadoDetectado = detectado;
-          lecturasIguales = 1;
-          // Los pulsos del pregiro se cuentan desde la PRIMERA detección (igual que antes),
-          // así PRED/PREI no hay que recalibrarlos por la demora de confirmar.
-          resetearEncoders();
-        }
-      }
-      bool confirmado = detectado == estadoDetectado && lecturasIguales >= LECTURAS_CONFIRMACION;
-
-      if (detectado != AVANZANDO && !confirmado) {
-        // [DEBOUNCE] Todavía no hay 3 lecturas iguales: sigue avanzando con el PID de arriba
-      } else if (condicionGiroDer) {
-        enviarString(">>> GIRANDO DERECHA <<<" + textoLecturas(sensadoActual)); // [LOG LECTURAS]
-        // resetearEncoders(); // [DEBOUNCE] Ahora se resetea en la primera detección (ver arriba)
-        estado = PREGIRO_DER;
-      } else if (condicionAvanzar) {
-        // Continúa avanzando
-        estado = AVANZANDO;
-      } else if (condicionGiroIzq) {
-        enviarString(">>> GIRANDO IZQUIERDA <<<" + textoLecturas(sensadoActual)); // [LOG LECTURAS]
-        // resetearEncoders(); // [DEBOUNCE] Ahora se resetea en la primera detección (ver arriba)
-        estado = PREGIRO_IZQ;
-      } else if (condicionGiro180) {
-        // [DECISION QUIETO] Antes frenaba acá mismo, a ~100 mm de la pared, con el robot todavía en
-        // la celda anterior: los laterales podían estar mirando la celda equivocada (180 cuando había
-        // que girar). Ahora se acerca a la pared igual que en un giro con el frente bloqueado (pregiro
-        // del lado no prioritario, que corta por pulsos o con la pared a 50 mm), frena y decide quieto
-        // al final del pregiro. El 180 se confirma ahí con la mediana de 3 lecturas.
-        enviarString(">>> PARED AL FRENTE (POSIBLE 180) <<<" + textoLecturas(sensadoActual)); // [LOG LECTURAS]
-        estado = (modoActual == MODO_RIGHT_HAND) ? PREGIRO_IZQ : PREGIRO_DER;
-      } else {
-        enviarString(">>> ERROR DE SENSADO <<<");
+        // Pared al frente y a los dos lados: frena y gira 180
         movimiento(FRENO_F, {0,0});
-      }
-
-      // [DEBOUNCE] Si salió de AVANZANDO, el contador arranca de cero para la próxima decisión
-      if (estado != AVANZANDO) {
-        estadoDetectado = AVANZANDO;
-        lecturasIguales = 0;
+        enviarString(">>> GIRANDO 180 <<<" + textoLecturas(sensadoActual));
+        delay(TIEMPO_FRENO_MS);
+        estado = GIRANDO_180;
+        resetearErrorAnterior();
+        resetearEncoders();
       }
       break;
     }
@@ -268,9 +175,7 @@ void loop(){
       } else {
         movimiento(FRENO_F, {0,0});
         delay(TIEMPO_FRENO_MS); // [FIX 1] Sostener el freno antes de resetear encoders
-        // [DECISION QUIETO] Antes giraba directo. Ahora, frenado en el centro de la celda, vuelve a
-        // leer y decide: si la abertura era falsa no gira (y el log se manda con el robot quieto)
-        estado = decidirQuieto(">>> FIN PREGIRO DERECHA");
+        estado = GIRANDO_DER;
         resetearErrorAnterior();
         resetearEncoders();
       }
@@ -285,9 +190,7 @@ void loop(){
       } else {
         movimiento(FRENO_F, {0,0});
         delay(TIEMPO_FRENO_MS); // [FIX 1] Sostener el freno antes de resetear encoders
-        // [DECISION QUIETO] Antes giraba directo. Ahora, frenado en el centro de la celda, vuelve a
-        // leer y decide: puede ser izquierda, derecha, 180 o seguir (si la detección era falsa)
-        estado = decidirQuieto(">>> FIN PREGIRO IZQUIERDA");
+        estado = GIRANDO_IZQ;
         resetearErrorAnterior();
         resetearEncoders();
       }

@@ -150,31 +150,3 @@ sensado actualizarSensado(){
 
   return lecturaAct;
 }
-
-// [DECISION QUIETO] Mediana de 3 valores
-static int16_t mediana3(int16_t a, int16_t b, int16_t c) {
-  if (a > b) { int16_t t = a; a = b; b = t; } // ahora a <= b
-  if (b > c) b = c;                           // b = min(b, c)
-  return (a > b) ? a : b;                     // max(a, min(b, c)) = mediana
-}
-
-// [DECISION QUIETO] Para usar con el robot QUIETO: junta 3 lecturas completas nuevas (los 3
-// sensores) y devuelve la mediana de cada sensor. La mediana descarta una lectura falsa suelta
-// (ej. un 1950 por un error), cosa que un promedio no hace. Tarda ~100 ms.
-sensado leerMediana3() {
-  sensado l[3];
-  uint8_t n = 0;
-  uint32_t inicio = millis();
-  while (n < 3 && millis() - inicio < 500) { // 500 ms de seguridad por si un sensor no responde
-    sensado s = actualizarSensado();
-    if (s.nueva) l[n++] = s;
-  }
-  if (n < 3) return actualizarSensado(); // no llegaron 3 lecturas: usa la última disponible
-
-  sensado r;
-  r.distanciaIzq  = mediana3(l[0].distanciaIzq,  l[1].distanciaIzq,  l[2].distanciaIzq);
-  r.distanciaCent = mediana3(l[0].distanciaCent, l[1].distanciaCent, l[2].distanciaCent);
-  r.distanciaDer  = mediana3(l[0].distanciaDer,  l[1].distanciaDer,  l[2].distanciaDer);
-  r.nueva = false;
-  return r;
-}

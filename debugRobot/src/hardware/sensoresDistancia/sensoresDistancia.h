@@ -30,6 +30,3 @@ sensado actualizarSensado();
 
 // [OFFSET DINÁMICO] Recalcula los offsets de los sensores laterales con el robot centrado entre paredes.
 void calibrarOffsetsLaterales();
-
-// [DECISION QUIETO] Con el robot QUIETO: mediana de 3 lecturas completas (descarta una lectura falsa suelta).
-sensado leerMediana3();

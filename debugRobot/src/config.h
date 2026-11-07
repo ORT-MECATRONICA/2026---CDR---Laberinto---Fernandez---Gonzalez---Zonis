@@ -15,16 +15,16 @@
 #define KD 1.0f
 
 // Velocidades de avance
-#define VEL_BASE_DER 45
-#define VEL_BASE_IZQ 45
+#define VEL_BASE_DER 80
+#define VEL_BASE_IZQ 80
 
 // Velocidades de giro 90°
-#define VEL_BASE_DER_GIRO 45
-#define VEL_BASE_IZQ_GIRO 45
+#define VEL_BASE_DER_GIRO 80
+#define VEL_BASE_IZQ_GIRO 80
 
 // Velocidades de giro 180°
-#define VEL_BASE_DER_GIRO180 55
-#define VEL_BASE_IZQ_GIRO180 55
+#define VEL_BASE_DER_GIRO180 80
+#define VEL_BASE_IZQ_GIRO180 80
 
 // [NO UTILIZADA ACTUALMENTE - MANTENIDA POR REQUISITO]
 #define UMBRAL_LECTURA 100
@@ -66,10 +66,6 @@
 // [FIX 1] Tiempo (ms) que el robot queda frenado antes de resetear encoders y pasar a la
 // maniobra siguiente. Absorbe la inercia para que no se cuente como pulsos del estado siguiente.
 #define TIEMPO_FRENO_MS 450
-
-// [DEBOUNCE] Cantidad de lecturas completas seguidas (los 3 sensores) que tienen que pedir
-// el mismo estado para entrar en PREGIRO_DER, PREGIRO_IZQ o GIRANDO_180
-#define LECTURAS_CONFIRMACION 3
 
 //===================
 //     PINES
